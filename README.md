@@ -412,39 +412,8 @@
 
 ---
 
-## **NHÓM 20: CÀI ĐẶT ỨNG DỤNG**
 
-### ✅ Cài đặt tài khoản
-- Bật/tắt thông báo đẩy
-- Bật/tắt thông báo email
-- Chọn ngôn ngữ (Tiếng Việt/English)
-- Chế độ tối/sáng (Dark/Light mode)
-
-### ✅ Điều khoản & Chính sách
-- Điều khoản sử dụng
-- Chính sách bảo mật
-- Chính sách hoàn tiền
-
-### ✅ Giới thiệu ứng dụng
-- Phiên bản app
-- Thông tin nhà phát triển
-- Liên hệ hỗ trợ
-
----
-
-## **NHÓM 21: BẢO MẬT**
-
-### ✅ Xác thực 2 yếu tố (2FA)
-- Bảo mật tài khoản bằng mã OTP qua SMS/Email
-- Bật/tắt trong cài đặt
-
-### ✅ Quản lý phiên đăng nhập
-- Xem các thiết bị đang đăng nhập
-- Đăng xuất từ xa
-
----
-
-## **NHÓM 22: THANH TOÁN**
+## **NHÓM 20: THANH TOÁN**
 
 ### ✅ Thanh toán Momo
 - Quét mã QR hoặc liên kết ví Momo
@@ -455,58 +424,6 @@
 
 ### ✅ Thanh toán COD
 - Trả tiền mặt khi nhận hàng
-
----
-
-## **NHÓM 23: CHAT HỖ TRỢ**
-
-### ✅ Chat với Admin
-- Chat trực tiếp với quán
-- Gửi tin nhắn văn bản và hình ảnh
-- Nhận phản hồi nhanh
-
-### ✅ Admin quản lý chat
-- Admin xem tất cả tin nhắn từ khách
-- Trả lời tin nhắn
-- Đánh dấu đã đọc
-
----
-
-## **NHÓM 24: TÍCH HỢP BÊN THỨ BA**
-
-### ✅ Google Maps
-- Hiển thị vị trí quán
-- Chỉ đường đến quán
-
-### ✅ Đăng nhập Facebook
-- Đăng nhập nhanh bằng tài khoản Facebook
-
-### ✅ Đăng nhập Google
-- Đăng nhập nhanh bằng tài khoản Google
-
----
-
-## **NHÓM 25: TÍNH NĂNG BỔ SUNG**
-
-### ✅ Đánh giá món sau khi hoàn thành
-- Sau khi đơn hoàn thành, yêu cầu đánh giá
-- Đánh giá sao và nhận xét cho từng món
-
-### ✅ Tìm kiếm bằng giọng nói
-- Nói tên món cần tìm
-- Hệ thống tự động tìm kiếm
-
-### ✅ Chia sẻ món ăn
-- Chia sẻ món yêu thích lên Facebook, Instagram
-- Mời bạn bè tải app
-
-### ✅ Tích điểm thưởng
-- Mỗi đơn hàng nhận 1% giá trị thành điểm
-- Đổi điểm lấy voucher giảm giá
-
-### ✅ Giới thiệu bạn bè
-- Mã giới thiệu cá nhân
-- Nhận thưởng khi bạn bè đăng ký và đặt hàng
 
 ---
 
