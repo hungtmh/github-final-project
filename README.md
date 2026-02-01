@@ -1,1883 +1,2258 @@
-# 📚 Hướng Dẫn Chi Tiết Code - Shipping Order Management System
-
-Tài liệu này giải thích chi tiết từng dòng code trong dự án, giúp người mới hiểu cách hoạt động của ứng dụng.
-
----
-
-## 📋 Mục Lục
-
-- [Cấu Trúc Tổng Quan](#cấu-trúc-tổng-quan)
-- [File index.html](#file-indexhtml)
-- [File main.jsx](#file-mainjsx)
-- [File index.css](#file-indexcss)
-- [File ApiContext.js](#file-apicontextjs)
-- [File App.jsx](#file-appjsx)
-- [File ShippingForm.jsx](#file-shippingformjsx)
-- [File ListOrders.jsx](#file-listordersjsx)
-- [File vite.config.js](#file-viteconfigjs)
-- [Khái Niệm Quan Trọng](#khái-niệm-quan-trọng)
-
----
-
-## Cấu Trúc Tổng Quan
-
-```
-Flow của ứng dụng:
-index.html → main.jsx → App.jsx → (ListOrders.jsx | ShippingForm.jsx)
-                           ↓
-                     ApiContext.js
-```
-
----
-
-## File: `index.html`
-
-**Mục đích:** File HTML gốc, là điểm khởi đầu của ứng dụng
-
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>shipping</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-```
-
-**Giải thích từng dòng:**
-
-```html
-<!doctype html>
-```
-- Khai báo đây là HTML5 document
-
-```html
-<html lang="en">
-```
-- Thẻ html root, `lang="en"` chỉ định ngôn ngữ là tiếng Anh
-
-```html
-<meta charset="UTF-8" />
-```
-- Thiết lập encoding UTF-8 để hỗ trợ tiếng Việt và các ký tự đặc biệt
-
-```html
-<link rel="icon" type="image/svg+xml" href="/vite.svg" />
-```
-- Thiết lập favicon (icon hiển thị trên tab trình duyệt)
-
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-```
-- Thiết lập responsive: width = chiều rộng thiết bị, zoom = 1.0
-
-```html
-<div id="root"></div>
-```
-- **QUAN TRỌNG:** Div này là nơi React sẽ render toàn bộ ứng dụng
-- React sẽ "mount" vào element có id="root"
-
-```html
-<script type="module" src="/src/main.jsx"></script>
-```
-- Import file JavaScript chính (main.jsx)
-- `type="module"` cho phép sử dụng ES6 modules (import/export)
-
----
-
-## File: `main.jsx`
-
-**Mục đích:** Entry point của React, khởi tạo ứng dụng
-
-```jsx
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
-```
-
-**Giải thích từng dòng:**
-
-```jsx
-import { StrictMode } from 'react'
-```
-- Import `StrictMode` - mode kiểm tra lỗi nghiêm ngặt của React
-- Giúp phát hiện lỗi tiềm ẩn trong quá trình development
-
-```jsx
-import { createRoot } from 'react-dom/client'
-```
-- Import `createRoot` - API mới của React 18 để render app
-- Thay thế cho `ReactDOM.render()` cũ
-
-```jsx
-import './index.css'
-```
-- Import file CSS global (bao gồm Tailwind CSS)
-
-```jsx
-import App from './App.jsx'
-```
-- Import component App (component root của ứng dụng)
-
-```jsx
-createRoot(document.getElementById('root'))
-```
-- Tạo root React tại element có id="root" trong HTML
-- `document.getElementById('root')` lấy div#root từ index.html
-
-```jsx
-.render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
-```
-- Render component App vào root
-- Bọc trong `<StrictMode>` để bật mode kiểm tra lỗi
-
----
-
-## File: `index.css`
-
-**Mục đích:** Global CSS và cấu hình Tailwind
-
-```css
-@import "tailwindcss";
-
-@custom-variant dark (&:where(.dark, .dark *));
-```
-
-**Giải thích:**
-
-```css
-@import "tailwindcss";
-```
-- Import toàn bộ Tailwind CSS v4
-- Cung cấp tất cả utility classes như `bg-blue-500`, `text-white`, v.v.
-
-```css
-@custom-variant dark (&:where(.dark, .dark *));
-```
-- **Cấu hình Dark Mode cho Tailwind v4**
-- Định nghĩa variant `dark:` hoạt động khi:
-  - Element có class `dark`
-  - Hoặc element nằm trong parent có class `dark`
-- VD: `dark:bg-gray-800` sẽ áp dụng khi `<html class="dark">`
-
-**Cách hoạt động:**
-```jsx
-// Khi dark mode OFF:
-<html>
-  <div class="bg-white dark:bg-gray-800">
-    // bg-white được áp dụng
-  </div>
-</html>
-
-// Khi dark mode ON:
-<html class="dark">
-  <div class="bg-white dark:bg-gray-800">
-    // dark:bg-gray-800 được áp dụng (ghi đè bg-white)
-  </div>
-</html>
-```
-
----
-
-## File: `ApiContext.js`
-
-**Mục đích:** Tạo Context để chia sẻ API config cho toàn bộ app
-
-```jsx
-import { createContext } from 'react';
-
-export default createContext({});
-```
-
-**Giải thích:**
-
-```jsx
-import { createContext } from 'react';
-```
-- Import `createContext` từ React
-- `createContext` tạo một Context object
-
-```jsx
-export default createContext({});
-```
-- Tạo và export một Context với giá trị mặc định là object rỗng `{}`
-- Context này sẽ chứa `{ url, key }` khi được cung cấp từ App.jsx
-
-**Cách sử dụng Context:**
-
-```jsx
-// Trong App.jsx (Provider - cung cấp dữ liệu):
-<ApiContext.Provider value={{ url: apiUrl, key: apiKey }}>
-  <ListOrders />
-</ApiContext.Provider>
-
-// Trong ListOrders.jsx (Consumer - sử dụng dữ liệu):
-const api = useContext(ApiContext);
-// api.url => 'https://...'
-// api.key => 'eyJhbGci...'
-```
-
-**Tại sao dùng Context?**
-- Tránh prop drilling (truyền props qua nhiều cấp)
-- Dữ liệu API config được dùng ở nhiều component
-- Dễ dàng thay đổi config ở một chỗ
-
----
-
-## File: `App.jsx`
-
-**Mục đích:** Component root, quản lý routing và dark mode
-
-### Phần 1: Import và Setup
-
-```jsx
-import './App.css'
-import { useState, useEffect } from 'react'
-import ShippingForm from './ShippingForm'
-import ListOrders from './ListOrders';
-import ApiContext from './ApiContext';
-```
-
-**Giải thích:**
-- Import CSS cho App
-- Import hooks: `useState` (quản lý state), `useEffect` (side effects)
-- Import các component con: ShippingForm, ListOrders
-- Import ApiContext để cung cấp API config
-
-### Phần 2: Component Function và State
-
-```jsx
-function App() {
-  const apiUrl = 'https://bwwtoionbsosagwqllro.supabase.co/rest/v1';
-  const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
-  const [currentPage, setCurrentPage] = useState('Home');
-  const [darkMode, setDarkMode] = useState(false);
-```
-
-**Giải thích:**
-
-```jsx
-const apiUrl = 'https://...'
-const apiKey = 'eyJhbGci...'
-```
-- **Supabase API Configuration**
-- `apiUrl`: Base URL của Supabase REST API
-- `apiKey`: Anonymous key để authenticate requests
-
-```jsx
-const [currentPage, setCurrentPage] = useState('Home');
-```
-- **State quản lý routing**
-- `currentPage`: State lưu trang hiện tại ('Home' hoặc 'ShippingForm')
-- `setCurrentPage`: Function để thay đổi trang
-- `useState('Home')`: Giá trị khởi tạo là 'Home'
-
-```jsx
-const [darkMode, setDarkMode] = useState(false);
-```
-- **State quản lý dark mode**
-- `darkMode`: true = dark mode ON, false = light mode ON
-- Khởi tạo là `false` (light mode)
-
-### Phần 3: Load Dark Mode từ LocalStorage
-
-```jsx
-useEffect(() => {
-  const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-  setDarkMode(savedDarkMode);
-  if (savedDarkMode) {
-    document.documentElement.classList.add('dark');
-  }
-}, []);
-```
-
-**Giải thích từng dòng:**
-
-```jsx
-useEffect(() => { ... }, []);
-```
-- **useEffect hook**: Chạy side effects
-- `[]` (dependency array rỗng): Chỉ chạy 1 lần khi component mount
-- Tương đương `componentDidMount` trong class component
-
-```jsx
-const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-```
-- Đọc giá trị 'darkMode' từ localStorage (lưu trữ trình duyệt)
-- `localStorage.getItem()` trả về string hoặc null
-- So sánh với 'true' để convert sang boolean
-- VD: localStorage có 'darkMode': 'true' → savedDarkMode = true
-
-```jsx
-setDarkMode(savedDarkMode);
-```
-- Cập nhật state darkMode với giá trị đã lưu
-
-```jsx
-if (savedDarkMode) {
-  document.documentElement.classList.add('dark');
-}
-```
-- Nếu dark mode đã bật (savedDarkMode = true)
-- Thêm class 'dark' vào thẻ `<html>` (`document.documentElement`)
-- Class này kích hoạt các style `dark:` của Tailwind
-
-**Flow:**
-1. User bật dark mode → Lưu vào localStorage
-2. Reload trang → useEffect chạy
-3. Đọc localStorage → Thấy darkMode = 'true'
-4. Set state và thêm class 'dark' → Dark mode tự động bật lại
-
-### Phần 4: Toggle Dark Mode Function
-
-```jsx
-const toggleDarkMode = () => {
-  const newDarkMode = !darkMode;
-  setDarkMode(newDarkMode);
-  localStorage.setItem('darkMode', newDarkMode);
-  console.log('Dark mode:', newDarkMode);
-  if (newDarkMode) {
-    document.documentElement.classList.add('dark');
-    console.log('Added dark class');
-  } else {
-    document.documentElement.classList.remove('dark');
-    console.log('Removed dark class');
-  }
-};
-```
-
-**Giải thích:**
-
-```jsx
-const newDarkMode = !darkMode;
-```
-- Toggle boolean: false → true, true → false
-- `!` là NOT operator
-
-```jsx
-setDarkMode(newDarkMode);
-```
-- Cập nhật state với giá trị mới
-
-```jsx
-localStorage.setItem('darkMode', newDarkMode);
-```
-- Lưu giá trị vào localStorage
-- `newDarkMode` (boolean) tự động convert thành string
-- VD: true → 'true', false → 'false'
-
-```jsx
-if (newDarkMode) {
-  document.documentElement.classList.add('dark');
+FOOD ORDER APP - TECHNICAL SPECIFICATION DOCUMENT
+📋 THÔNG TIN DỰ ÁN
+Tên dự án: Food Order Application
+Ngôn ngữ lập trình: Java (Android)
+Ngày tạo: 01/02/2026
+Phiên bản: 1.0.0
+
+🎯 TỔNG QUAN DỰ ÁN
+Ứng dụng đặt món ăn trực tuyến cho phép người dùng duyệt menu, đặt hàng và thanh toán. Ứng dụng hỗ trợ 2 vai trò chính: Admin (quản trị viên) và User (người dùng). Điểm nổi bật là tính năng AI Smart Upsell giúp tăng doanh thu thông qua gợi ý món ăn thông minh.
+
+👥 VAI TRÒ NGƯỜI DÙNG
+1. Admin (Quản trị viên)
+Quản lý toàn bộ hệ thống
+Quản lý món ăn, đơn hàng, feedback
+Theo dõi doanh thu và thống kê
+2. User (Người dùng)
+Đặt món ăn
+Quản lý giỏ hàng
+Xem lịch sử đơn hàng
+Gửi feedback
+🔥 DANH SÁCH CÁC NHÓM TÍNH NĂNG
+NHÓM 1: QUẢN LÝ TÀI KHOẢN & XÁC THỰC (Authentication & Account Management)
+1.1. Đăng nhập (Login)
+Mô tả: Cho phép người dùng đăng nhập vào hệ thống với email/số điện thoại và mật khẩu.
+
+Chức năng chi tiết:
+
+Nhập email/số điện thoại
+Nhập mật khẩu (có nút hiện/ẩn mật khẩu)
+Checkbox "Ghi nhớ đăng nhập"
+Nút "Đăng nhập"
+Link "Quên mật khẩu?"
+Link "Đăng ký tài khoản mới"
+Phân quyền tự động (Admin/User) sau khi đăng nhập thành công
+Firebase Implementation:
+
+// Firebase Authentication - Đăng nhập
+FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+mAuth.signInWithEmailAndPassword(email, password)
+    .addOnCompleteListener(task -> {
+        if (task.isSuccessful()) {
+            FirebaseUser firebaseUser = mAuth.getCurrentUser();
+            
+            // Lấy thông tin user từ Firestore
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(firebaseUser.getUid())
+                .get()
+                .addOnSuccessListener(document -> {
+                    String name = document.getString("name");
+                    String role = document.getString("role"); // "ADMIN" or "USER"
+                    String avatar = document.getString("avatar");
+                    
+                    // Lưu thông tin local
+                    SharedPrefManager.getInstance(context).saveUser(firebaseUser.getUid(), name, email, role);
+                    
+                    // Chuyển màn hình
+                    if (role.equals("ADMIN")) {
+                        startActivity(new Intent(context, AdminDashboardActivity.class));
+                    } else {
+                        startActivity(new Intent(context, HomeActivity.class));
+                    }
+                });
+        } else {
+            Toast.makeText(context, "Đăng nhập thất bại: " + task.getException().getMessage(), 
+                Toast.LENGTH_SHORT).show();
+        }
+    });
+Firestore Database Structure:
+
+users/
+  ├── {userId}/
+  │     ├── name: "Nguyễn Văn A"
+  │     ├── email: "user@example.com"
+  │     ├── phone: "0123456789"
+  │     ├── role: "USER" hoặc "ADMIN"
+  │     ├── avatar: "url"
+  │     ├── address: "123 ABC Street"
+  │     └── createdAt: timestamp
+Validation:
+
+Email phải đúng định dạng
+Mật khẩu không được để trống
+Hiển thị thông báo lỗi nếu sai thông tin
+1.2. Đăng ký (Register)
+Mô tả: Cho phép người dùng mới tạo tài khoản.
+
+Chức năng chi tiết:
+
+Nhập họ tên
+Nhập email
+Nhập số điện thoại
+Nhập mật khẩu
+Nhập lại mật khẩu (confirm password)
+Checkbox "Tôi đồng ý với điều khoản sử dụng"
+Nút "Đăng ký"
+Firebase Implementation:
+
+// Firebase Authentication - Đăng ký
+FirebaseAuth mAuth = FirebaseAuth.getInstance();
+FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+// 1. Tạo tài khoản Authentication
+mAuth.createUserWithEmailAndPassword(email, password)
+    .addOnCompleteListener(task -> {
+        if (task.isSuccessful()) {
+            FirebaseUser firebaseUser = mAuth.getCurrentUser();
+            String userId = firebaseUser.getUid();
+            
+            // 2. Lưu thông tin user vào Firestore
+            Map<String, Object> user = new HashMap<>();
+            user.put("name", name);
+            user.put("email", email);
+            user.put("phone", phone);
+            user.put("role", "USER"); // Mặc định là USER
+            user.put("avatar", "");
+            user.put("address", "");
+            user.put("createdAt", FieldValue.serverTimestamp());
+            
+            db.collection("users")
+                .document(userId)
+                .set(user)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(context, "Đăng ký thành công!", Toast.LENGTH_SHORT).show();
+                    // Chuyển về màn hình đăng nhập
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+        } else {
+            Toast.makeText(context, "Đăng ký thất bại: " + task.getException().getMessage(),
+                Toast.LENGTH_SHORT).show();
+        }
+    });
+Validation:
+
+Email chưa tồn tại trong hệ thống
+Số điện thoại đúng định dạng (10-11 số)
+Mật khẩu tối thiểu 6 ký tự
+Mật khẩu và xác nhận mật khẩu phải trùng khớp
+1.3. Quên mật khẩu (Forgot Password)
+Mô tả: Cho phép người dùng khôi phục mật khẩu qua email.
+
+Chức năng chi tiết:
+
+Nhập email đã đăng ký
+Gửi mã OTP về email
+Nhập mã OTP để xác thực
+Nhập mật khẩu mới
+Nhập lại mật khẩu mới
+Firebase Implementation:
+
+// Firebase Authentication - Gửi email reset mật khẩu
+FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+mAuth.sendPasswordResetEmail(email)
+    .addOnCompleteListener(task -> {
+        if (task.isSuccessful()) {
+            Toast.makeText(context, 
+                "Email khôi phục mật khẩu đã được gửi. Vui lòng kiểm tra email!",
+                Toast.LENGTH_LONG).show();
+            finish(); // Quay về màn hình đăng nhập
+        } else {
+            Toast.makeText(context, 
+                "Lỗi: " + task.getException().getMessage(),
+                Toast.LENGTH_SHORT).show();
+        }
+    });
+
+// Lưu ý: Firebase tự động gửi email với link reset password
+// User click vào link → nhập password mới → Firebase tự động cập nhật
+1.4. Đổi mật khẩu (Change Password)
+Mô tả: Cho phép người dùng đã đăng nhập đổi mật khẩu.
+
+Chức năng chi tiết:
+
+Nhập mật khẩu hiện tại
+Nhập mật khẩu mới
+Nhập lại mật khẩu mới
+Nút "Cập nhật"
+Firebase Implementation:
+
+// Firebase Authentication - Đổi mật khẩu
+FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+// 1. Xác thực lại với mật khẩu hiện tại (bắt buộc)
+AuthCredential credential = EmailAuthProvider.getCredential(user.getEmail(), currentPassword);
+
+user.reauthenticate(credential)
+    .addOnCompleteListener(task -> {
+        if (task.isSuccessful()) {
+            // 2. Cập nhật mật khẩu mới
+            user.updatePassword(newPassword)
+                .addOnCompleteListener(updateTask -> {
+                    if (updateTask.isSuccessful()) {
+                        Toast.makeText(context, "Đổi mật khẩu thành công!", Toast.LENGTH_SHORT).show();
+                        finish();
+                    } else {
+                        Toast.makeText(context, "Lỗi: " + updateTask.getException().getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    }
+                });
+        } else {
+            Toast.makeText(context, "Mật khẩu hiện tại không đúng!", Toast.LENGTH_SHORT).show();
+        }
+    });
+1.5. Hiển thị User Profile
+Mô tả: Hiển thị và chỉnh sửa thông tin cá nhân.
+
+Chức năng chi tiết:
+
+Hiển thị avatar (có thể chụp ảnh hoặc chọn từ thư viện)
+Hiển thị/Chỉnh sửa họ tên
+Hiển thị email (không cho phép sửa)
+Hiển thị/Chỉnh sửa số điện thoại
+Hiển thị/Chỉnh sửa địa chỉ
+Nút "Lưu thay đổi"
+Firebase Implementation:
+
+// Lấy thông tin profile
+FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+db.collection("users")
+    .document(currentUser.getUid())
+    .get()
+    .addOnSuccessListener(document -> {
+        String name = document.getString("name");
+        String phone = document.getString("phone");
+        String address = document.getString("address");
+        String avatar = document.getString("avatar");
+        
+        // Hiển thị lên UI
+        tvName.setText(name);
+        tvEmail.setText(currentUser.getEmail());
+        tvPhone.setText(phone);
+        tvAddress.setText(address);
+        Glide.with(context).load(avatar).into(imgAvatar);
+    });
+
+// Cập nhật profile
+Map<String, Object> updates = new HashMap<>();
+updates.put("name", newName);
+updates.put("phone", newPhone);
+updates.put("address", newAddress);
+
+// Upload avatar nếu có thay đổi
+if (avatarUri != null) {
+    StorageReference storageRef = FirebaseStorage.getInstance()
+        .getReference("avatars/" + currentUser.getUid() + ".jpg");
+    
+    storageRef.putFile(avatarUri)
+        .addOnSuccessListener(taskSnapshot -> {
+            storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                updates.put("avatar", uri.toString());
+                
+                // Cập nhật Firestore
+                db.collection("users").document(currentUser.getUid())
+                    .update(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show();
+                    });
+            });
+        });
 } else {
-  document.documentElement.classList.remove('dark');
+    // Cập nhật Firestore (không có avatar mới)
+    db.collection("users").document(currentUser.getUid())
+        .update(updates)
+        .addOnSuccessListener(aVoid -> {
+            Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show();
+        });
 }
-```
-- Thêm/xóa class 'dark' từ thẻ `<html>`
-- Kích hoạt/tắt dark mode styles
+1.6. Đăng xuất (Logout)
+Mô tả: Thoát khỏi tài khoản hiện tại.
 
-### Phần 5: Render Function
+Chức năng chi tiết:
 
-```jsx
-const renderPage = () => {
-  switch (currentPage) {
-    case 'Home':
-      return <ListOrders setCurrentPage={setCurrentPage} />;
-    case 'ShippingForm':
-      return <ShippingForm setCurrentPage={setCurrentPage} />;
-  }
-};
-```
+Xóa token đã lưu
+Xóa thông tin người dùng trong SharedPreferences
+Chuyển về màn hình đăng nhập
+Firebase Implementation:
 
-**Giải thích:**
+// Đăng xuất
+FirebaseAuth.getInstance().signOut();
 
-```jsx
-switch (currentPage) { ... }
-```
-- Kiểm tra giá trị của `currentPage`
-- Tương tự if-else nhưng dễ đọc hơn cho nhiều cases
+// Xóa thông tin local
+SharedPrefManager.getInstance(context).clear();
 
-```jsx
-case 'Home':
-  return <ListOrders setCurrentPage={setCurrentPage} />;
-```
-- Nếu `currentPage === 'Home'`: render ListOrders
-- Truyền `setCurrentPage` xuống child để child có thể đổi trang
+// Chuyển về màn hình đăng nhập
+Intent intent = new Intent(context, LoginActivity.class);
+intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+startActivity(intent);
+finish();
+NHÓM 2: QUẢN LÝ MÓN ĂN (Food Management) - ADMIN
+2.1. Hiển thị danh sách món ăn (Admin)
+Mô tả: Admin xem toàn bộ món ăn trong hệ thống.
 
-```jsx
-case 'ShippingForm':
-  return <ShippingForm setCurrentPage={setCurrentPage} />;
-```
-- Nếu `currentPage === 'ShippingForm'`: render ShippingForm
+Chức năng chi tiết:
 
-**Cách hoạt động routing:**
-1. User click "Create Order" trong ListOrders
-2. ListOrders gọi `setCurrentPage('ShippingForm')`
-3. State `currentPage` thay đổi → Component re-render
-4. `renderPage()` thấy `currentPage === 'ShippingForm'` → Render ShippingForm
+Hiển thị danh sách dạng RecyclerView
+Mỗi item hiển thị: hình ảnh, tên món, giá, trạng thái (available/unavailable)
+Nút "Thêm món mới" (FAB)
+Nút "Sửa" và "Xóa" trên mỗi item
+Firebase Implementation:
 
-### Phần 6: Return JSX
+// Lấy danh sách tất cả món ăn - REALTIME
+FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-```jsx
-return (
-  <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
-    <ApiContext.Provider value={{ url: apiUrl, key: apiKey }}>
-      {/* Dark Mode Toggle Button */}
-      <div className="fixed top-4 right-4 z-50">
-        <button
-          onClick={toggleDarkMode}
-          className="p-3 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 shadow-lg"
-          title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {darkMode ? (
-            <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-              {/* Sun icon */}
-            </svg>
-          ) : (
-            <svg className="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
-              {/* Moon icon */}
-            </svg>
-          )}
-        </button>
-      </div>
-      
-      {renderPage()}
-    </ApiContext.Provider>
-  </div>
-)
-```
-
-**Giải thích chi tiết:**
-
-```jsx
-<div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
-```
-- `min-h-screen`: Chiều cao tối thiểu = 100vh (full viewport)
-- `bg-white`: Background trắng (light mode)
-- `dark:bg-gray-900`: Background xám đậm (dark mode)
-- `transition-colors duration-200`: Hiệu ứng chuyển màu mượt trong 200ms
-
-```jsx
-<ApiContext.Provider value={{ url: apiUrl, key: apiKey }}>
-```
-- **Context Provider**: Cung cấp dữ liệu cho toàn bộ component tree
-- `value`: Object chứa url và key
-- Mọi component con có thể dùng `useContext(ApiContext)` để lấy data
-
-```jsx
-<div className="fixed top-4 right-4 z-50">
-```
-- `fixed`: Position fixed (không cuộn theo trang)
-- `top-4 right-4`: Cách top 1rem (16px), right 1rem
-- `z-50`: Z-index cao để button luôn ở trên
-
-```jsx
-<button onClick={toggleDarkMode} ...>
-```
-- `onClick={toggleDarkMode}`: Gọi function khi click
-- Không có `()` sau toggleDarkMode vì chỉ truyền reference
-
-```jsx
-{darkMode ? (
-  <svg>...</svg>  // Sun icon
-) : (
-  <svg>...</svg>  // Moon icon
-)}
-```
-- **Conditional rendering**
-- Nếu `darkMode === true`: Hiển thị icon mặt trời (☀️)
-- Nếu `darkMode === false`: Hiển thị icon mặt trăng (🌙)
-
-```jsx
-{renderPage()}
-```
-- Gọi function `renderPage()` để render component tương ứng
-
----
-
-## File: `ShippingForm.jsx`
-
-**Mục đích:** Form tạo đơn hàng mới với validation
-
-### Phần 1: Imports
-
-```jsx
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useContext, useEffect, useState } from 'react'
-import ApiContext from './ApiContext'
-```
-
-**Giải thích:**
-
-```jsx
-import { useForm } from 'react-hook-form'
-```
-- **React Hook Form**: Thư viện quản lý form hiệu quả
-- `useForm`: Hook chính để tạo và quản lý form
-
-```jsx
-import { z } from 'zod'
-```
-- **Zod**: Thư viện validation schema
-- Định nghĩa rules validation một cách type-safe
-
-```jsx
-import { zodResolver } from '@hookform/resolvers/zod'
-```
-- Adapter kết nối Zod với React Hook Form
-
-### Phần 2: Component và State
-
-```jsx
-export default function ShippingForm({ setCurrentPage }) {
-  const api = useContext(ApiContext);
-  
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-```
-
-**Giải thích:**
-
-```jsx
-export default function ShippingForm({ setCurrentPage }) {
-```
-- Export component ShippingForm
-- Nhận prop `setCurrentPage` từ App.jsx (để đổi trang)
-
-```jsx
-const api = useContext(ApiContext);
-```
-- **Consume Context**: Lấy API config từ ApiContext
-- `api.url` và `api.key` sẽ có sẵn để dùng
-
-```jsx
-const [provinces, setProvinces] = useState([]);
-const [wards, setWards] = useState([]);
-```
-- State lưu danh sách provinces (tỉnh/thành)
-- State lưu danh sách wards (phường/xã)
-- Khởi tạo là array rỗng `[]`
-
-### Phần 3: Zod Schema Validation
-
-```jsx
-const schema = z.object({
-  recipient: z.string().min(3, 'Recipent is required'),
-  houseNumber: z.string().min(1, 'House number is required'),
-  street: z.string().min(1, 'Street is required'),
-  province: z.preprocess(
-    val => (typeof val === "string" ? Number(val) : val), 
-    z.number()
-  ),
-  ward: z.preprocess(
-    val => (typeof val === "string" ? Number(val) : val), 
-    z.number()
-  ),
-});
-```
-
-**Giải thích chi tiết:**
-
-```jsx
-const schema = z.object({ ... })
-```
-- Tạo validation schema dạng object
-- Mỗi field trong form sẽ có rules riêng
-
-```jsx
-recipient: z.string().min(3, 'Recipent is required')
-```
-- `z.string()`: Kiểm tra kiểu string
-- `.min(3, 'message')`: Tối thiểu 3 ký tự, nếu không hiện message lỗi
-
-```jsx
-province: z.preprocess(
-  val => (typeof val === "string" ? Number(val) : val), 
-  z.number()
-)
-```
-- **Preprocess**: Xử lý giá trị trước khi validate
-- `val => ...`: Arrow function nhận value
-- `typeof val === "string" ? Number(val) : val`: 
-  - Nếu là string → Convert sang number
-  - Nếu không → Giữ nguyên
-- `z.number()`: Sau khi preprocess, validate là number
-
-**Tại sao cần preprocess?**
-- `<select>` trong HTML trả về string
-- VD: `<option value="1">` → value là "1" (string)
-- Ta cần number để gửi lên API → Preprocess convert "1" → 1
-
-### Phần 4: Load Provinces (useEffect)
-
-```jsx
-useEffect(() => {
-  fetch(`${api.url}/provinces`, {
-    headers: {
-      apikey: api.key,
-    },
-  }).then(async (result) => {
-    if (result.status === 200) {
-      setProvinces(await result.json());
-    } else {
-      console.error('Cannot load province data:', result);
-    }
-  });
-}, []);
-```
-
-**Giải thích từng dòng:**
-
-```jsx
-useEffect(() => { ... }, []);
-```
-- Chạy 1 lần khi component mount (dependency array rỗng)
-
-```jsx
-fetch(`${api.url}/provinces`, { ... })
-```
-- **Fetch API**: Gọi HTTP request đến Supabase
-- URL: `https://.../rest/v1/provinces`
-- Method mặc định: GET
-
-```jsx
-headers: {
-  apikey: api.key,
-}
-```
-- Header bắt buộc cho Supabase API
-- `apikey`: Authentication key
-
-```jsx
-.then(async (result) => { ... })
-```
-- `.then()`: Xử lý khi request thành công
-- `async`: Cho phép dùng `await` bên trong
-
-```jsx
-if (result.status === 200) {
-  setProvinces(await result.json());
-}
-```
-- Status 200 = OK (thành công)
-- `result.json()`: Parse response body thành JSON
-- `await`: Đợi parsing xong
-- `setProvinces(...)`: Cập nhật state với data
-
-**Flow:**
-1. Component mount → useEffect chạy
-2. Fetch provinces từ Supabase
-3. Parse JSON response
-4. Update state → Component re-render với data
-
-### Phần 5: React Hook Form Setup
-
-```jsx
-const {
-  register,
-  handleSubmit,
-  watch,
-  setValue,
-  formState: { errors },
-} = useForm({
-  resolver: zodResolver(schema),
-});
-
-const selectedProvince = watch('province');
-```
-
-**Giải thích:**
-
-```jsx
-const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({ ... })
-```
-- **Destructuring**: Lấy các methods từ useForm hook
-
-**Các method:**
-
-1. **register**: 
-   ```jsx
-   <input {...register('name')} />
-   ```
-   - Đăng ký input với form
-   - Tự động bind value, onChange, onBlur
-
-2. **handleSubmit**:
-   ```jsx
-   <form onSubmit={handleSubmit(onSubmit)}>
-   ```
-   - Wrapper cho submit handler
-   - Tự động prevent default, validate, gọi callback
-
-3. **watch**:
-   ```jsx
-   const value = watch('fieldName')
-   ```
-   - Theo dõi giá trị của field
-   - Re-render khi field thay đổi
-
-4. **setValue**:
-   ```jsx
-   setValue('fieldName', value)
-   ```
-   - Set giá trị cho field programmatically
-
-5. **formState.errors**:
-   ```jsx
-   {errors.name && <p>{errors.name.message}</p>}
-   ```
-   - Object chứa lỗi validation
-   - Mỗi field có thể có error message
-
-```jsx
-resolver: zodResolver(schema)
-```
-- Kết nối Zod schema với React Hook Form
-- Mọi input sẽ được validate theo schema
-
-```jsx
-const selectedProvince = watch('province');
-```
-- Theo dõi giá trị của field 'province'
-- Khi user chọn province → `selectedProvince` thay đổi → Re-render
-
-### Phần 6: Load Wards khi Province Thay Đổi
-
-```jsx
-useEffect(() => {
-  setValue('ward', '');
-  setWards([]);
-  if (selectedProvince && selectedProvince.length > 0) {
-    fetch(`${api.url}/wards?province_id=eq.${selectedProvince}&order=name_with_type.asc`, {
-      headers: {
-        apikey: api.key,
-      },
-    }).then(async (result) => {
-      if (result.status === 200) {
-        setWards(await result.json());
-      } else {
-        console.error('Cannot load ward data:', result);
-      }
+db.collection("foods")
+    .orderBy("createdAt", Query.Direction.DESCENDING)
+    .addSnapshotListener((value, error) -> {
+        if (error != null) {
+            Toast.makeText(context, "Lỗi: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        List<Food> foodList = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : value) {
+            Food food = doc.toObject(Food.class);
+            food.setId(doc.getId());
+            foodList.add(food);
+        }
+        
+        // Cập nhật RecyclerView
+        adapter.setFoodList(foodList);
+        adapter.notifyDataSetChanged();
     });
-  }
-}, [selectedProvince, setValue]);
-```
 
-**Giải thích:**
+// Food Model
+public class Food {
+    private String id;
+    private String name;
+    private double price;
+    private String image;
+    private String category;
+    private boolean isAvailable;
+    private String description;
+    private List<String> images;
+    private boolean isPopular;
+    private boolean isSuggested;
+    private Timestamp createdAt;
+    
+    // Getters & Setters
+}
+Firestore Database Structure:
 
-```jsx
-useEffect(() => { ... }, [selectedProvince, setValue]);
-```
-- **Dependency array**: `[selectedProvince, setValue]`
-- Chạy lại MỖI KHI `selectedProvince` thay đổi
+foods/
+  ├── {foodId}/
+  │     ├── name: "Gà rán"
+  │     ├── price: 45000
+  │     ├── image: "url_image_main"
+  │     ├── category: "MAIN_DISH" | "DRINK" | "DESSERT" | "APPETIZER"
+  │     ├── description: "Gà rán giòn tan..."
+  │     ├── images: ["url1", "url2", "url3"]
+  │     ├── isAvailable: true
+  │     ├── isPopular: true
+  │     ├── isSuggested: false
+  │     ├── rating: 4.5
+  │     ├── totalReviews: 120
+  │     └── createdAt: timestamp
+2.2. Thêm món ăn mới (Admin)
+Mô tả: Admin thêm món ăn mới vào hệ thống.
 
-```jsx
-setValue('ward', '');
-```
-- Reset field 'ward' về rỗng
-- Vì đổi province → ward cũ không còn hợp lệ
+Chức năng chi tiết:
 
-```jsx
-setWards([]);
-```
-- Reset danh sách wards về array rỗng
+Upload hình ảnh món ăn (từ camera hoặc gallery)
+Nhập tên món
+Nhập giá
+Chọn danh mục (Category): Main Dish, Drink, Dessert, Appetizer
+Nhập mô tả
+Thêm nhiều hình ảnh khác (gallery)
+Checkbox "Món phổ biến"
+Checkbox "Món gợi ý"
+Nút "Thêm món"
+Firebase Implementation:
 
-```jsx
-if (selectedProvince && selectedProvince.length > 0) {
-```
-- Kiểm tra đã chọn province chưa
-- `selectedProvince.length > 0`: Đảm bảo không phải string rỗng
+// 1. Upload hình ảnh lên Firebase Storage
+StorageReference storageRef = FirebaseStorage.getInstance()
+    .getReference("food_images/" + System.currentTimeMillis() + ".jpg");
 
-```jsx
-fetch(`${api.url}/wards?province_id=eq.${selectedProvince}&order=name_with_type.asc`, ...)
-```
-- **Supabase Query Syntax**:
-  - `?province_id=eq.${selectedProvince}`: Filter wards có province_id = selectedProvince
-  - `&order=name_with_type.asc`: Sắp xếp tăng dần theo tên
-  - `eq` = equals (toán tử so sánh)
-  - `asc` = ascending (tăng dần)
-
-**Flow khi user chọn province:**
-1. User select province → `selectedProvince` thay đổi
-2. useEffect trigger
-3. Reset ward field và wards list
-4. Fetch wards cho province mới
-5. Update state → Dropdown ward hiển thị options mới
-
-### Phần 7: Submit Handler
-
-```jsx
-const onSubmit = (data) => {
-  console.log(data);
-  fetch(`${api.url}/orders`, {
-    method: 'POST',
-    headers: {
-      apikey: api.key,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      recipient: data.recipient,
-      house_number: data.houseNumber,
-      street: data.street,
-      province_id: data.province,
-      ward_id: data.ward,
-    }),
-  }).then((result) => {
-    if (result.status === 201) {
-      alert('Create new shipping order successfully!');
-    } else {
-      alert('Something went wrong! Check the console!');
-      console.error(result);
-    }
-  });
-};
-```
-
-**Giải thích:**
-
-```jsx
-const onSubmit = (data) => {
-```
-- Callback được gọi khi form valid
-- `data`: Object chứa values của tất cả fields
-- VD: `{ recipient: 'John', houseNumber: '123', ... }`
-
-```jsx
-console.log(data);
-```
-- Log để debug, xem data có đúng không
-
-```jsx
-method: 'POST',
-```
-- HTTP method POST để tạo mới resource
-
-```jsx
-'Content-Type': 'application/json',
-```
-- Header báo server rằng body là JSON
-
-```jsx
-body: JSON.stringify({ ... }),
-```
-- `JSON.stringify()`: Convert object JavaScript → JSON string
-- Supabase yêu cầu body phải là JSON string
-
-```jsx
-recipient: data.recipient,
-house_number: data.houseNumber,
-```
-- **Mapping field names**:
-  - Form dùng camelCase: `houseNumber`
-  - Database dùng snake_case: `house_number`
-  - Phải convert khi gửi API
-
-```jsx
-if (result.status === 201) {
-```
-- Status 201 = Created (tạo thành công)
-- 200 = OK, 400 = Bad Request, 500 = Server Error
-
-**Flow submit:**
-1. User click Submit → `handleSubmit` validate
-2. Nếu valid → Gọi `onSubmit(data)`
-3. POST data lên Supabase
-4. Nếu 201 → Alert thành công
-5. Nếu lỗi → Alert + console.error
-
-### Phần 8: JSX Form Structure
-
-```jsx
-return (
-  <form
-    onSubmit={handleSubmit(onSubmit)}
-    className="max-w-md mx-auto p-4 bg-white dark:bg-gray-800 shadow-md rounded-md space-y-6"
-  >
-```
-
-**Giải thích:**
-
-```jsx
-onSubmit={handleSubmit(onSubmit)}
-```
-- `handleSubmit`: Wrapper của React Hook Form
-- `onSubmit`: Callback function của chúng ta
-- Flow: User submit → handleSubmit validate → Nếu OK → Gọi onSubmit
-
-```jsx
-className="max-w-md mx-auto p-4 bg-white dark:bg-gray-800 ..."
-```
-- `max-w-md`: Max width = 28rem (448px)
-- `mx-auto`: Margin horizontal auto (center)
-- `p-4`: Padding 1rem (16px)
-- `bg-white dark:bg-gray-800`: BG trắng/xám đậm tùy mode
-- `shadow-md`: Box shadow vừa
-- `rounded-md`: Bo góc vừa
-- `space-y-6`: Khoảng cách vertical 1.5rem giữa children
-
-### Phần 9: Input Field Pattern
-
-```jsx
-<div>
-  <label className="block mb-1 font-semibold text-gray-900 dark:text-gray-100" htmlFor="recipient">
-    Recipient
-  </label>
-  <input
-    id="recipient"
-    type="text"
-    {...register('recipient')}
-    className={`w-full px-3 py-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-      errors.recipient ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-    }`}
-  />
-  {errors.recipient && (
-    <p className="text-red-500 dark:text-red-400 text-sm mt-1">{errors.recipient.message}</p>
-  )}
-</div>
-```
-
-**Giải thích từng phần:**
-
-```jsx
-<label htmlFor="recipient">Recipient</label>
-```
-- `htmlFor`: Liên kết label với input (click label = focus input)
-- Phải match với `id` của input
-
-```jsx
-{...register('recipient')}
-```
-- **Spread operator**: Trải object thành props
-- `register('recipient')` trả về:
-  ```js
-  {
-    name: 'recipient',
-    onChange: handleChange,
-    onBlur: handleBlur,
-    ref: inputRef
-  }
-  ```
-- `{...}` spread tất cả props này vào input
-
-```jsx
-className={`... ${errors.recipient ? 'border-red-500' : 'border-gray-300 ...'}`}
-```
-- **Template literal với conditional**
-- Nếu có lỗi: border đỏ
-- Nếu không: border xám
-
-```jsx
-{errors.recipient && (
-  <p>{errors.recipient.message}</p>
-)}
-```
-- **Conditional rendering**
-- Chỉ hiện error message nếu có lỗi
-- `&&`: Short-circuit operator (nếu left false → không render right)
-
-### Phần 10: Select Dropdown Pattern
-
-```jsx
-<select
-  id="province"
-  {...register('province')}
-  className={`w-full px-3 py-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-    errors.province ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-  }`}
->
-  <option value="">Select province</option>
-  {provinces.map(({ id, name_with_type }) => (
-    <option key={id} value={id}>
-      {name_with_type}
-    </option>
-  ))}
-</select>
-```
-
-**Giải thích:**
-
-```jsx
-<option value="">Select province</option>
-```
-- Option mặc định (placeholder)
-- `value=""`: Giá trị rỗng → Không hợp lệ theo schema
-
-```jsx
-{provinces.map(({ id, name_with_type }) => ( ... ))}
-```
-- **Array.map()**: Loop qua mảng provinces
-- **Destructuring**: `{ id, name_with_type }` lấy properties từ object
-- Return một `<option>` cho mỗi province
-
-```jsx
-<option key={id} value={id}>
-  {name_with_type}
-</option>
-```
-- `key={id}`: Key unique cho React (required trong list)
-- `value={id}`: Giá trị được submit (number)
-- `{name_with_type}`: Text hiển thị (VD: "Thành phố Hồ Chí Minh")
-
-**Tại sao cần key?**
-- React dùng key để track changes trong list
-- Không có key → Warning và performance issues
-- Key phải unique và stable
-
----
-
-## File: `ListOrders.jsx`
-
-**Mục đích:** Hiển thị danh sách đơn hàng với CRUD operations
-
-### Phần 1: State Management
-
-```jsx
-const [orders, setOrders] = useState([]);
-const [loading, setLoading] = useState(true);
-const [editingId, setEditingId] = useState(null);
-const [editForm, setEditForm] = useState({});
-const [provinces, setProvinces] = useState([]);
-const [wards, setWards] = useState([]);
-const [searchTerm, setSearchTerm] = useState('');
-```
-
-**Giải thích các state:**
-
-1. **orders**: Array chứa tất cả đơn hàng
-   ```js
-   [
-     { id: 1, recipient: 'John', house_number: '123', ... },
-     { id: 2, recipient: 'Jane', house_number: '456', ... }
-   ]
-   ```
-
-2. **loading**: Boolean cho loading spinner
-   - `true`: Đang fetch data → Hiện spinner
-   - `false`: Đã có data → Hiện list
-
-3. **editingId**: ID của order đang edit
-   - `null`: Không edit order nào
-   - `5`: Đang edit order có id = 5
-
-4. **editForm**: Object chứa data đang edit
-   ```js
-   {
-     recipient: 'John Doe',
-     house_number: '123',
-     street: 'Main St',
-     province_id: 79,
-     ward_id: 1234
-   }
-   ```
-
-5. **provinces**: Array provinces cho dropdown edit
-
-6. **wards**: Array wards cho dropdown edit (filtered by province)
-
-7. **searchTerm**: String từ khóa tìm kiếm
-   - VD: "john", "hcm", "123"
-
-### Phần 2: Fetch Orders Function
-
-```jsx
-const fetchOrders = () => {
-  fetch(`${api.url}/orders?select=*,ward:wards(*),province:provinces(*)&order=id.desc`, {
-    headers: {
-      apikey: api.key,
-    },
-  }).then(async (result) => {
-    if (result.status === 200) {
-      setLoading(false);
-      setOrders(await result.json());
-    } else {
-      console.error('Cannot load order data:', result);
-    }
-  });
-};
-```
-
-**Giải thích Supabase Query:**
-
-```
-/orders?select=*,ward:wards(*),province:provinces(*)&order=id.desc
-```
-
-**Breakdown:**
-- `select=*`: Lấy tất cả columns của orders
-- `,ward:wards(*)`: **JOIN** với table wards, đặt alias là 'ward'
-- `,province:provinces(*)`: **JOIN** với table provinces, alias 'province'
-- `&order=id.desc`: Sắp xếp giảm dần theo id (mới nhất trước)
-
-**Response structure:**
-```json
-[
-  {
-    "id": 1,
-    "recipient": "John",
-    "house_number": "123",
-    "street": "Main St",
-    "province_id": 79,
-    "ward_id": 1234,
-    "ward": {
-      "id": 1234,
-      "name_with_type": "Phường Bến Nghé"
-    },
-    "province": {
-      "id": 79,
-      "name_with_type": "Thành phố Hồ Chí Minh"
-    }
-  }
-]
-```
-
-**Tại sao cần join?**
-- Table orders chỉ lưu `province_id` và `ward_id` (foreign keys)
-- Để hiển thị tên, cần join với tables provinces và wards
-- Supabase cho phép join ngay trong 1 request (thay vì 3 requests riêng)
-
-### Phần 3: Delete Handler
-
-```jsx
-const handleDelete = (orderId) => {
-  if (confirm('Are you sure you want to delete this order?')) {
-    fetch(`${api.url}/orders?id=eq.${orderId}`, {
-      method: 'DELETE',
-      headers: {
-        apikey: api.key,
-      },
-    }).then((result) => {
-      if (result.status === 204) {
-        alert('Order deleted successfully!');
-        fetchOrders();
-      } else {
-        alert('Failed to delete order!');
-        console.error(result);
-      }
+storageRef.putFile(imageUri)
+    .addOnSuccessListener(taskSnapshot -> {
+        storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+            String imageUrl = uri.toString();
+            
+            // 2. Lưu thông tin món ăn vào Firestore
+            Map<String, Object> food = new HashMap<>();
+            food.put("name", foodName);
+            food.put("price", price);
+            food.put("image", imageUrl);
+            food.put("category", category);
+            food.put("description", description);
+            food.put("images", imageUrlsList); // List các ảnh phụ
+            food.put("isAvailable", true);
+            food.put("isPopular", isPopular);
+            food.put("isSuggested", isSuggested);
+            food.put("rating", 0.0);
+            food.put("totalReviews", 0);
+            food.put("createdAt", FieldValue.serverTimestamp());
+            
+            FirebaseFirestore.getInstance()
+                .collection("foods")
+                .add(food)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(context, "Thêm món thành công!", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+        });
+    })
+    .addOnProgressListener(snapshot -> {
+        // Hiển thị progress khi upload
+        double progress = (100.0 * snapshot.getBytesTransferred()) / snapshot.getTotalByteCount();
+        progressBar.setProgress((int) progress);
     });
-  }
-};
-```
+2.3. Chỉnh sửa món ăn (Admin)
+Mô tả: Admin cập nhật thông tin món ăn.
 
-**Giải thích:**
+Chức năng chi tiết:
 
-```jsx
-if (confirm('Are you sure...')) {
-```
-- `confirm()`: Native browser dialog với OK/Cancel
-- Return `true` nếu user click OK, `false` nếu Cancel
-- Ngăn xóa nhầm
+Load thông tin món ăn hiện tại
+Cho phép sửa tất cả các trường thông tin
+Nút "Cập nhật"
+API Endpoint:
 
-```jsx
-method: 'DELETE',
-```
-- HTTP method DELETE
+PUT /api/admin/foods/{foodId}
+Request Body: {
+    // Same as add food
+}
+2.4. Xóa món ăn (Admin)
+Mô tả: Admin xóa món ăn khỏi hệ thống.
 
-```jsx
-?id=eq.${orderId}
-```
-- Filter: Xóa record có id = orderId
-- `eq` = equals operator
+Chức năng chi tiết:
 
-```jsx
-if (result.status === 204) {
-```
-- Status 204 = No Content (xóa thành công)
-- 204 không có response body
+Hiển thị dialog xác nhận "Bạn có chắc chắn muốn xóa món này?"
+Nút "Hủy" và "Xóa"
+Firebase Implementation:
 
-```jsx
-fetchOrders();
-```
-- Refresh list sau khi xóa
-- Lấy lại data mới từ server
+// Xóa món ăn
+FirebaseFirestore.getInstance()
+    .collection("foods")
+    .document(foodId)
+    .delete()
+    .addOnSuccessListener(aVoid -> {
+        Toast.makeText(context, "Đã xóa món ăn!", Toast.LENGTH_SHORT).show();
+        
+        // Xóa ảnh trong Storage (optional)
+        if (food.getImage() != null && !food.getImage().isEmpty()) {
+            StorageReference photoRef = FirebaseStorage.getInstance()
+                .getReferenceFromUrl(food.getImage());
+            photoRef.delete();
+        }
+    })
+    .addOnFailureListener(e -> {
+        Toast.makeText(context, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+    });
+2.5. Tìm kiếm món ăn theo tên (Admin)
+Mô tả: Admin tìm kiếm món ăn trong hệ thống.
 
-### Phần 4: Toggle Complete Handler
+Chức năng chi tiết:
 
-```jsx
-const handleToggleComplete = (orderId, currentStatus) => {
-  fetch(`${api.url}/orders?id=eq.${orderId}`, {
-    method: 'PATCH',
-    headers: {
-      apikey: api.key,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
+SearchView ở toolbar
+Tìm kiếm realtime khi gõ
+Hiển thị kết quả dạng danh sách
+API Endpoint:
+
+GET /api/admin/foods/search?keyword={keyword}
+NHÓM 3: QUẢN LÝ FEEDBACK (Feedback Management) - ADMIN
+3.1. Hiển thị danh sách feedback
+Mô tả: Admin xem tất cả feedback từ người dùng.
+
+Chức năng chi tiết:
+
+Hiển thị danh sách feedback dạng RecyclerView
+Mỗi item hiển thị:
+Tên người gửi
+Nội dung feedback
+Đánh giá sao (1-5 sao)
+Thời gian gửi
+Trạng thái: Mới/Đã đọc
+Filter theo trạng thái
+Nút "Xóa" trên mỗi item
+API Endpoint:
+
+GET /api/admin/feedbacks
+Response: {
+    "feedbacks": [
+        {
+            "id": "string",
+            "userId": "string",
+            "userName": "string",
+            "userAvatar": "string",
+            "content": "string",
+            "rating": "number",
+            "createdAt": "timestamp",
+            "status": "NEW|READ"
+        }
+    ]
+}
+3.2. Xem chi tiết feedback
+Mô tả: Admin xem chi tiết feedback và đánh dấu đã đọc.
+
+Chức năng chi tiết:
+
+Hiển thị đầy đủ thông tin feedback
+Tự động cập nhật trạng thái thành "Đã đọc"
+API Endpoint:
+
+GET /api/admin/feedbacks/{feedbackId}
+PUT /api/admin/feedbacks/{feedbackId}/mark-read
+3.3. Xóa feedback
+Mô tả: Admin xóa feedback không phù hợp.
+
+Chức năng chi tiết:
+
+Dialog xác nhận
+Xóa khỏi hệ thống
+API Endpoint:
+
+DELETE /api/admin/feedbacks/{feedbackId}
+NHÓM 4: QUẢN LÝ ĐƠN HÀNG (Order Management) - ADMIN
+4.1. Hiển thị danh sách tất cả đơn hàng
+Mô tả: Admin xem tất cả đơn hàng trong hệ thống.
+
+Chức năng chi tiết:
+
+Hiển thị danh sách đơn hàng
+Mỗi item hiển thị:
+Mã đơn hàng
+Tên khách hàng
+Số lượng món
+Tổng tiền
+Trạng thái: Chờ xác nhận/Đang xử lý/Hoàn thành/Đã hủy
+Thời gian đặt
+Filter theo trạng thái
+Filter theo ngày
+Search theo mã đơn hàng hoặc tên khách
+API Endpoint:
+
+GET /api/admin/orders?status={status}&date={date}&keyword={keyword}
+Response: {
+    "orders": [
+        {
+            "id": "string",
+            "orderCode": "string",
+            "userId": "string",
+            "userName": "string",
+            "totalItems": "number",
+            "totalPrice": "number",
+            "status": "PENDING|PROCESSING|COMPLETED|CANCELLED",
+            "createdAt": "timestamp"
+        }
+    ]
+}
+4.2. Xem chi tiết đơn hàng
+Mô tả: Admin xem chi tiết từng đơn hàng.
+
+Chức năng chi tiết:
+
+Thông tin khách hàng (tên, SĐT, địa chỉ)
+Danh sách món ăn (tên, số lượng, giá)
+Tổng tiền
+Thời gian đặt
+Ghi chú của khách hàng
+Trạng thái hiện tại
+API Endpoint:
+
+GET /api/admin/orders/{orderId}
+Response: {
+    "id": "string",
+    "orderCode": "string",
+    "customer": {
+        "name": "string",
+        "phone": "string",
+        "address": "string"
     },
-    body: JSON.stringify({
-      completed: !currentStatus,
-    }),
-  }).then(async (result) => {
-    if (result.status === 204) {
-      fetchOrders();
-    } else {
-      const errorText = await result.text();
-      alert('Failed to update order status!');
-      console.error('Error response:', result.status, errorText);
-    }
-  });
-};
-```
+    "items": [
+        {
+            "foodId": "string",
+            "foodName": "string",
+            "quantity": "number",
+            "price": "number",
+            "image": "string"
+        }
+    ],
+    "totalPrice": "number",
+    "note": "string",
+    "status": "string",
+    "createdAt": "timestamp"
+}
+4.3. Cập nhật trạng thái đơn hàng
+Mô tả: Admin cập nhật trạng thái xử lý đơn hàng.
 
-**Giải thích:**
+Chức năng chi tiết:
 
-```jsx
-method: 'PATCH',
-```
-- PATCH: Update một phần của resource (chỉ field `completed`)
-- PUT: Update toàn bộ resource
+Dropdown chọn trạng thái:
+Chờ xác nhận → Đang xử lý → Hoàn thành
+Hoặc Hủy đơn hàng
+Nhập lý do (nếu hủy)
+Nút "Cập nhật"
+Gửi thông báo cho khách hàng khi thay đổi trạng thái
+API Endpoint:
 
-```jsx
-'Prefer': 'return=minimal',
-```
-- **Header đặc biệt của Supabase**
-- `return=minimal`: Không trả về data, chỉ status
-- Giảm bandwidth, tăng tốc độ
+PUT /api/admin/orders/{orderId}/status
+Request Body: {
+    "status": "PENDING|PROCESSING|COMPLETED|CANCELLED",
+    "reason": "string"
+}
+4.4. Thống kê đơn hàng
+Mô tả: Admin xem thống kê tổng quan đơn hàng.
 
-```jsx
-body: JSON.stringify({
-  completed: !currentStatus,
-}),
-```
-- `!currentStatus`: Toggle boolean
-  - `true` → `false`
-  - `false` → `true`
+Chức năng chi tiết:
 
-**Flow:**
-1. User click toggle button
-2. Gọi API PATCH với `completed: !currentStatus`
-3. Nếu 204 → Refresh orders list
-4. List re-render với status mới
+Tổng số đơn hàng
+Số đơn chờ xác nhận
+Số đơn đang xử lý
+Số đơn hoàn thành
+Số đơn bị hủy
+Biểu đồ theo thời gian
+API Endpoint:
 
-### Phần 5: Edit Handlers
+GET /api/admin/orders/statistics?startDate={date}&endDate={date}
+NHÓM 5: THEO DÕI DOANH THU (Revenue Tracking) - ADMIN
+5.1. Xem doanh thu theo ngày
+Mô tả: Admin theo dõi doanh thu theo từng ngày cụ thể.
 
-```jsx
-const handleEdit = (order) => {
-  setEditingId(order.id);
-  setEditForm({
-    recipient: order.recipient,
-    house_number: order.house_number,
-    street: order.street,
-    province_id: order.province_id,
-    ward_id: order.ward_id,
-  });
-  // Load wards for selected province
-  fetch(`${api.url}/wards?province_id=eq.${order.province_id}&order=name_with_type.asc`, {
-    headers: {
-      apikey: api.key,
+Chức năng chi tiết:
+
+Chọn ngày cần xem (DatePicker)
+Hiển thị:
+Tổng doanh thu trong ngày
+Số đơn hàng hoàn thành
+Số đơn hàng bị hủy
+Món ăn bán chạy nhất
+Chi tiết từng đơn hàng trong ngày
+API Endpoint:
+
+GET /api/admin/revenue/daily?date={date}
+Response: {
+    "date": "string",
+    "totalRevenue": "number",
+    "completedOrders": "number",
+    "cancelledOrders": "number",
+    "topSellingFood": {
+        "name": "string",
+        "quantity": "number"
     },
-  }).then(async (result) => {
-    if (result.status === 200) {
-      setWards(await result.json());
+    "orders": []
+}
+5.2. Xem doanh thu theo tháng
+Mô tả: Admin theo dõi doanh thu theo tháng.
+
+Chức năng chi tiết:
+
+Chọn tháng/năm
+Biểu đồ cột theo từng ngày trong tháng
+Tổng doanh thu tháng
+So sánh với tháng trước
+API Endpoint:
+
+GET /api/admin/revenue/monthly?month={month}&year={year}
+5.3. Xem doanh thu theo khoảng thời gian
+Mô tả: Admin tùy chọn khoảng thời gian để xem doanh thu.
+
+Chức năng chi tiết:
+
+Chọn ngày bắt đầu
+Chọn ngày kết thúc
+Hiển thị biểu đồ đường
+Export báo cáo PDF
+API Endpoint:
+
+GET /api/admin/revenue/range?startDate={date}&endDate={date}
+5.4. Top món ăn bán chạy
+Mô tả: Admin xem danh sách món ăn bán chạy nhất.
+
+Chức năng chi tiết:
+
+Hiển thị top 10 món ăn
+Số lượng đã bán
+Doanh thu từng món
+Filter theo thời gian
+API Endpoint:
+
+GET /api/admin/revenue/top-selling?startDate={date}&endDate={date}&limit=10
+NHÓM 6: HIỂN THỊ MÓN ĂN PHỔ BIẾN (Popular Foods Display) - USER
+6.1. Slide hình ảnh món ăn phổ biến
+Mô tả: Hiển thị slider món ăn phổ biến ở màn hình Home với auto-run.
+
+Chức năng chi tiết:
+
+ViewPager2 hoặc RecyclerView với SnapHelper
+Auto scroll mỗi 3 giây
+Hiển thị indicator (dots)
+Khi click vào ảnh → mở chi tiết món ăn
+Load realtime từ server
+API Endpoint:
+
+GET /api/foods/popular
+Response: {
+    "foods": [
+        {
+            "id": "string",
+            "name": "string",
+            "image": "string",
+            "price": "number",
+            "rating": "number"
+        }
+    ]
+}
+Implementation:
+
+// ViewPager2 with auto scroll
+ViewPager2 viewPager = findViewById(R.id.viewPagerPopular);
+Handler handler = new Handler();
+Runnable runnable = new Runnable() {
+    @Override
+    public void run() {
+        int currentItem = viewPager.getCurrentItem();
+        int totalItems = adapter.getItemCount();
+        viewPager.setCurrentItem((currentItem + 1) % totalItems);
+        handler.postDelayed(this, 3000); // 3 seconds
     }
-  });
 };
-```
+handler.postDelayed(runnable, 3000);
+NHÓM 7: GỢI Ý MÓN ĂN (Suggested Foods) - USER
+7.1. Hiển thị danh sách món ăn gợi ý
+Mô tả: Hiển thị món ăn được gợi ý cho người dùng ở màn hình Home.
 
-**Giải thích:**
+Chức năng chi tiết:
 
-```jsx
-setEditingId(order.id);
-```
-- Set state = id của order đang edit
-- Component re-render → Hiển thị form edit cho order này
+Hiển thị dạng Grid (2 cột) hoặc List
+Load realtime từ server
+Hiển thị: hình ảnh, tên món, giá, rating
+Icon "Thêm vào giỏ hàng"
+Click vào món → xem chi tiết
+API Endpoint:
 
-```jsx
-setEditForm({ ... });
-```
-- Populate form với data hiện tại của order
-- User sẽ thấy values sẵn trong inputs
+GET /api/foods/suggested
+Response: {
+    "foods": [
+        {
+            "id": "string",
+            "name": "string",
+            "image": "string",
+            "price": "number",
+            "rating": "number",
+            "description": "string"
+        }
+    ]
+}
+NHÓM 8: TÌM KIẾM MÓN ĂN (Food Search) - USER
+8.1. Tìm kiếm món ăn theo tên
+Mô tả: Người dùng tìm kiếm món ăn ở màn hình Home.
 
-```jsx
-fetch(`${api.url}/wards?province_id=eq.${order.province_id}...`)
-```
-- Load wards cho province hiện tại
-- Để dropdown ward có options đúng
+Chức năng chi tiết:
 
-### Phần 6: Save Edit Handler
+SearchView trong Toolbar hoặc riêng một màn hình
+Tìm kiếm realtime khi gõ (debounce 500ms)
+Hiển thị kết quả dạng danh sách
+Highlight từ khóa tìm kiếm
+Lưu lịch sử tìm kiếm (local)
+Gợi ý từ khóa phổ biến
+API Endpoint:
 
-```jsx
-const handleSaveEdit = (orderId) => {
-  fetch(`${api.url}/orders?id=eq.${orderId}`, {
-    method: 'PATCH',
-    headers: {
-      apikey: api.key,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
-    },
-    body: JSON.stringify(editForm),
-  }).then((result) => {
-    if (result.status === 204) {
-      alert('Order updated successfully!');
-      setEditingId(null);
-      setEditForm({});
-      setWards([]);
-      fetchOrders();
-    } else {
-      alert('Failed to update order!');
-      console.error(result);
+GET /api/foods/search?keyword={keyword}
+Response: {
+    "foods": [],
+    "suggestions": ["string"]
+}
+Implementation:
+
+searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+    private Handler handler = new Handler();
+    private Runnable searchRunnable;
+    
+    @Override
+    public boolean onQueryTextChange(String newText) {
+        if (searchRunnable != null) {
+            handler.removeCallbacks(searchRunnable);
+        }
+        searchRunnable = () -> performSearch(newText);
+        handler.postDelayed(searchRunnable, 500); // Debounce 500ms
+        return true;
     }
-  });
-};
-```
-
-**Giải thích:**
-
-```jsx
-body: JSON.stringify(editForm),
-```
-- Gửi toàn bộ editForm object lên server
-- Supabase sẽ update tất cả fields trong object
-
-```jsx
-setEditingId(null);
-setEditForm({});
-setWards([]);
-```
-- Reset states về default
-- Exit edit mode
-- Clear form data
-
-```jsx
-fetchOrders();
-```
-- Refresh list với data mới
-
-**Flow edit:**
-1. User click Edit → `handleEdit` → Show form
-2. User modify fields → Update `editForm` state
-3. User click Save → `handleSaveEdit` → PATCH API
-4. Success → Reset states → Fetch new data → Show updated list
-
-### Phần 7: Search Filter Logic
-
-```jsx
-const filteredOrders = orders.filter((order) => {
-  if (!searchTerm) return true;
-  
-  const search = searchTerm.toLowerCase();
-  return (
-    order.id.toString().includes(search) ||
-    order.recipient.toLowerCase().includes(search) ||
-    order.house_number.toLowerCase().includes(search) ||
-    order.street.toLowerCase().includes(search) ||
-    order.ward.name_with_type.toLowerCase().includes(search) ||
-    order.province.name_with_type.toLowerCase().includes(search)
-  );
 });
-```
+8.2. Lọc món ăn theo danh mục
+Mô tả: Người dùng lọc món ăn theo category.
 
-**Giải thích:**
+Chức năng chi tiết:
 
-```jsx
-const filteredOrders = orders.filter((order) => { ... });
-```
-- `Array.filter()`: Tạo array mới chỉ chứa items thỏa điều kiện
-- Return `true` = giữ lại, `false` = loại bỏ
+Chip Group hiển thị các danh mục: Tất cả, Main Dish, Drink, Dessert, Appetizer
+Click vào chip → filter danh sách món ăn
+Kết hợp được với tìm kiếm
+API Endpoint:
 
-```jsx
-if (!searchTerm) return true;
-```
-- Nếu không có search term → Giữ tất cả orders
-- `!searchTerm`: `""` (empty string) = falsy
+GET /api/foods?category={category}
+8.3. Sắp xếp món ăn
+Mô tả: Người dùng sắp xếp món ăn theo tiêu chí.
 
-```jsx
-const search = searchTerm.toLowerCase();
-```
-- Convert search term sang lowercase
-- Để so sánh case-insensitive (không phân biệt hoa thường)
+Chức năng chi tiết:
 
-```jsx
-order.id.toString().includes(search)
-```
-- Convert id (number) sang string
-- Check xem có chứa search term không
-- VD: id = 123, search = "12" → `true`
+Sắp xếp theo:
+Giá: Thấp → Cao
+Giá: Cao → Thấp
+Đánh giá cao nhất
+Mới nhất
+Dropdown hoặc Bottom Sheet chọn tiêu chí
+API Endpoint:
 
-```jsx
-order.recipient.toLowerCase().includes(search)
-```
-- Convert recipient sang lowercase
-- VD: recipient = "John Doe", search = "john" → `true`
+GET /api/foods?sortBy={price_asc|price_desc|rating_desc|newest}
+NHÓM 9: CHI TIẾT MÓN ĂN (Food Details) - USER
+9.1. Hiển thị thông tin chi tiết món ăn
+Mô tả: Hiển thị đầy đủ thông tin món ăn khi người dùng click vào.
 
-```jsx
-||
-```
-- OR operator: Chỉ cần 1 điều kiện `true` là return `true`
-- Search match bất kỳ field nào → Hiển thị order đó
+Chức năng chi tiết:
 
-**Flow search:**
-1. User type "john" vào search box
-2. `searchTerm` state update → Component re-render
-3. `filteredOrders` re-calculate
-4. Chỉ orders có "john" trong bất kỳ field nào được giữ lại
-5. Map `filteredOrders` thay vì `orders` → Chỉ hiện kết quả match
+Hình ảnh lớn (swipe để xem nhiều ảnh)
+Tên món ăn
+Giá
+Rating (sao) và số lượt đánh giá
+Mô tả chi tiết
+Danh mục
+Nút "Thêm vào giỏ hàng"
+Số lượng selector (+/-)
+API Endpoint:
 
-### Phần 8: Conditional Rendering (Edit Mode vs View Mode)
+GET /api/foods/{foodId}
+Response: {
+    "id": "string",
+    "name": "string",
+    "price": "number",
+    "images": ["string"],
+    "rating": "number",
+    "totalReviews": "number",
+    "description": "string",
+    "category": "string",
+    "ingredients": ["string"],
+    "isAvailable": "boolean"
+}
+9.2. Gallery hình ảnh món ăn
+Mô tả: Xem nhiều hình ảnh món ăn.
 
-```jsx
-{filteredOrders.map((o) => (
-  <li key={o.id} ...>
-    {editingId === o.id ? (
-      // EDIT MODE
-      <div className="space-y-3">
-        <input ... />
-        <button onClick={() => handleSaveEdit(o.id)}>Save</button>
-        <button onClick={handleCancelEdit}>Cancel</button>
-      </div>
-    ) : (
-      // VIEW MODE
-      <div>
-        <p>Order ID: #{o.id}</p>
-        <p>Recipient: {o.recipient}</p>
-        <button onClick={() => handleEdit(o)}>Edit</button>
-        <button onClick={() => handleDelete(o.id)}>Delete</button>
-      </div>
-    )}
-  </li>
-))}
-```
+Chức năng chi tiết:
 
-**Giải thích:**
+ViewPager2 để swipe qua lại
+Indicator hiển thị vị trí ảnh
+Pinch to zoom
+Click vào ảnh → fullscreen
+9.3. Đánh giá & Reviews món ăn
+Mô tả: Hiển thị đánh giá từ người dùng khác.
 
-```jsx
-{editingId === o.id ? ... : ...}
-```
-- **Ternary operator**: `condition ? true_case : false_case`
-- Nếu `editingId === o.id`: Đang edit order này → Show form
-- Nếu không: Show view mode
+Chức năng chi tiết:
 
-**Edit Mode:**
-```jsx
-<input
-  value={editForm.recipient}
-  onChange={(e) => setEditForm({ ...editForm, recipient: e.target.value })}
-/>
-```
-- Controlled input: Value từ state
-- `onChange`: Update state khi user type
-- `{ ...editForm, recipient: ... }`: Spread existing fields, override recipient
+Tổng rating trung bình
+Số lượng đánh giá
+Danh sách review (tên, avatar, số sao, nội dung, thời gian)
+Người dùng có thể thêm review của mình
+API Endpoint:
 
-**View Mode:**
-```jsx
-<p>Recipient: {o.recipient}</p>
-```
-- Chỉ hiển thị text, không có input
+GET /api/foods/{foodId}/reviews
+POST /api/foods/{foodId}/reviews
+Request Body: {
+    "rating": "number",
+    "comment": "string"
+}
+NHÓM 10: GIỎ HÀNG (Shopping Cart) - USER
+10.1. Thêm món ăn vào giỏ hàng
+Mô tả: Người dùng thêm món ăn vào giỏ hàng với số lượng tùy chọn.
 
-**Buttons:**
-```jsx
-<button onClick={() => handleEdit(o)}>Edit</button>
-```
-- Arrow function: `() => handleEdit(o)`
-- Truyền toàn bộ order object vào handler
+Chức năng chi tiết:
 
-```jsx
-<button onClick={() => handleDelete(o.id)}>Delete</button>
-```
-- Chỉ truyền id (không cần toàn bộ object)
+Nút "Thêm vào giỏ hàng" ở chi tiết món ăn
+Chọn số lượng (+/- buttons hoặc NumberPicker)
+Animation khi thêm vào giỏ
+Cập nhật badge số lượng món trong giỏ
+Lưu giỏ hàng local (SQLite hoặc Room Database)
+Database Schema:
 
-### Phần 9: Search UI Component
+@Entity(tableName = "cart_items")
+public class CartItem {
+    @PrimaryKey
+    private String foodId;
+    private String foodName;
+    private String foodImage;
+    private double price;
+    private int quantity;
+    private long addedAt;
+}
+DAO:
 
-```jsx
-<div className="mb-4">
-  <div className="relative">
-    <input
-      type="text"
-      placeholder="🔍 Tìm kiếm..."
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      className="w-full px-4 py-3 pl-10 border ..."
-    />
-    <svg className="absolute left-3 top-3.5 h-5 w-5">...</svg>
-    {searchTerm && (
-      <button onClick={() => setSearchTerm('')}>
-        <svg>X icon</svg>
-      </button>
-    )}
-  </div>
-  <p className="mt-2 text-sm">
-    Tìm thấy {filteredOrders.length} đơn hàng
-  </p>
-</div>
-```
+@Dao
+public interface CartDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void addToCart(CartItem item);
+    
+    @Query("SELECT * FROM cart_items")
+    LiveData<List<CartItem>> getAllCartItems();
+    
+    @Update
+    void updateCartItem(CartItem item);
+    
+    @Delete
+    void removeFromCart(CartItem item);
+    
+    @Query("DELETE FROM cart_items")
+    void clearCart();
+    
+    @Query("SELECT SUM(quantity) FROM cart_items")
+    LiveData<Integer> getTotalItems();
+}
+10.2. Hiển thị danh sách món trong giỏ hàng
+Mô tả: Hiển thị tất cả món ăn đã thêm vào giỏ hàng.
 
-**Giải thích:**
+Chức năng chi tiết:
 
-```jsx
-<div className="relative">
-```
-- Position relative: Parent của absolute positioned children
+RecyclerView hiển thị danh sách
+Mỗi item hiển thị:
+Hình ảnh món
+Tên món
+Giá
+Số lượng (có thể tăng/giảm)
+Tổng giá = giá × số lượng
+Nút "Xóa"
+Hiển thị tổng tiền tất cả món
+Nút "Đặt hàng"
+Nút "Xóa tất cả"
+Layout:
 
-```jsx
-<input ... className="... pl-10 ..." />
-```
-- `pl-10`: Padding left 2.5rem
-- Để nhường chỗ cho icon search bên trái
+<!-- RecyclerView Item -->
+<CardView>
+    <ImageView id="foodImage"/>
+    <TextView id="foodName"/>
+    <TextView id="foodPrice"/>
+    <LinearLayout> <!-- Quantity Selector -->
+        <Button id="btnMinus" text="-"/>
+        <TextView id="tvQuantity"/>
+        <Button id="btnPlus" text="+"/>
+    </LinearLayout>
+    <TextView id="tvTotalPrice"/>
+    <ImageButton id="btnDelete"/>
+</CardView>
+10.3. Cập nhật số lượng món trong giỏ
+Mô tả: Người dùng thay đổi số lượng món ăn.
 
-```jsx
-<svg className="absolute left-3 top-3.5 ...">
-```
-- Position absolute: Nằm trên input
-- `left-3 top-3.5`: Vị trí icon
+Chức năng chi tiết:
 
-```jsx
-{searchTerm && (
-  <button onClick={() => setSearchTerm('')}>
-```
-- Chỉ hiện nút X khi có searchTerm
-- Click X → Clear search
+Nút "+" để tăng số lượng
+Nút "-" để giảm số lượng
+Nếu số lượng = 0 → xóa món khỏi giỏ
+Cập nhật realtime tổng tiền
+Implementation:
 
-```jsx
-Tìm thấy {filteredOrders.length} đơn hàng
-```
-- Dynamic counter
-- Update realtime khi filter thay đổi
+btnPlus.setOnClickListener(v -> {
+    int currentQty = cartItem.getQuantity();
+    cartItem.setQuantity(currentQty + 1);
+    cartViewModel.updateCartItem(cartItem);
+});
 
----
+btnMinus.setOnClickListener(v -> {
+    int currentQty = cartItem.getQuantity();
+    if (currentQty > 1) {
+        cartItem.setQuantity(currentQty - 1);
+        cartViewModel.updateCartItem(cartItem);
+    } else {
+        // Show confirmation dialog before removing
+        showDeleteConfirmation(cartItem);
+    }
+});
+10.4. Xóa món khỏi giỏ hàng
+Mô tả: Người dùng xóa món không muốn mua.
 
-## File: `vite.config.js`
+Chức năng chi tiết:
 
-**Mục đích:** Cấu hình Vite build tool
+Icon "Xóa" trên mỗi item
+Swipe to delete (ItemTouchHelper)
+Dialog xác nhận "Bạn muốn xóa món này?"
+Animation khi xóa
+Implementation:
 
-```jsx
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+    @Override
+    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+        int position = viewHolder.getAdapterPosition();
+        CartItem item = cartItems.get(position);
+        
+        // Show snackbar with undo option
+        Snackbar.make(recyclerView, "Đã xóa " + item.getFoodName(), Snackbar.LENGTH_LONG)
+            .setAction("HOÀN TÁC", v -> cartViewModel.addToCart(item))
+            .show();
+        
+        cartViewModel.removeFromCart(item);
+    }
+};
+10.5. Xóa tất cả giỏ hàng
+Mô tả: Xóa toàn bộ món trong giỏ hàng.
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  server: {
-    proxy: {
-      '/rest': 'https://bwwtoionbsosagwqllro.supabase.co',
+Chức năng chi tiết:
+
+Nút "Xóa tất cả"
+Dialog xác nhận
+Clear database
+NHÓM 11: ĐẶT HÀNG (Order Placement) - USER
+11.1. Tạo đơn hàng mới
+Mô tả: Người dùng đặt hàng từ giỏ hàng.
+
+Chức năng chi tiết:
+
+Xác nhận danh sách món (từ giỏ hàng)
+Nhập thông tin giao hàng:
+Tên người nhận
+Số điện thoại
+Địa chỉ giao hàng (có thể chọn từ địa chỉ đã lưu)
+Chọn phương thức thanh toán:
+Tiền mặt (COD)
+Chuyển khoản
+Ví điện tử (Momo, ZaloPay)
+Nhập ghi chú cho đơn hàng
+Hiển thị tổng tiền
+Nút "Xác nhận đặt hàng"
+API Endpoint:
+
+POST /api/orders
+Headers: {
+    "Authorization": "Bearer {token}"
+}
+Request Body: {
+    "items": [
+        {
+            "foodId": "string",
+            "quantity": "number",
+            "price": "number"
+        }
+    ],
+    "deliveryInfo": {
+        "name": "string",
+        "phone": "string",
+        "address": "string"
     },
-  }
-})
-```
-
-**Giải thích:**
-
-```jsx
-import { defineConfig } from 'vite'
-```
-- Helper function để define config với TypeScript intellisense
-
-```jsx
-plugins: [react(), tailwindcss()],
-```
-- **react()**: Plugin cho React (Fast Refresh, JSX transform)
-- **tailwindcss()**: Plugin Tailwind v4 cho Vite
-
-```jsx
-server: {
-  proxy: {
-    '/rest': 'https://bwwtoionbsosagwqllro.supabase.co',
-  },
+    "paymentMethod": "COD|BANK_TRANSFER|MOMO|ZALOPAY",
+    "note": "string",
+    "totalPrice": "number"
 }
-```
-- **Development proxy**
-- Request đến `/rest/*` sẽ được forward đến Supabase
-- Tránh CORS issues trong development
-
-**VD:**
-```js
-// Code gọi:
-fetch('/rest/v1/orders')
-
-// Vite proxy thành:
-fetch('https://bwwtoionbsosagwqllro.supabase.co/rest/v1/orders')
-```
-
----
-
-## Khái Niệm Quan Trọng
-
-### 1. **React Hooks**
-
-**useState:**
-```jsx
-const [value, setValue] = useState(initialValue);
-```
-- State management trong functional component
-- `value`: Giá trị hiện tại
-- `setValue`: Function để update
-- Component re-render khi state thay đổi
-
-**useEffect:**
-```jsx
-useEffect(() => {
-  // Side effect code
-  return () => {
-    // Cleanup (optional)
-  };
-}, [dependencies]);
-```
-- Chạy side effects (API calls, subscriptions, etc.)
-- `[]`: Chạy 1 lần khi mount
-- `[dep]`: Chạy lại khi dep thay đổi
-- No array: Chạy sau mỗi render
-
-**useContext:**
-```jsx
-const value = useContext(MyContext);
-```
-- Consume context value
-- Tránh prop drilling
-
-### 2. **Component Communication**
-
-**Parent → Child (Props):**
-```jsx
-// Parent
-<Child name="John" age={25} />
-
-// Child
-function Child({ name, age }) {
-  return <p>{name} is {age}</p>;
+Response: {
+    "success": "boolean",
+    "orderId": "string",
+    "orderCode": "string",
+    "message": "string"
 }
-```
+11.2. Xác nhận đơn hàng
+Mô tả: Hiển thị màn hình xác nhận sau khi đặt hàng thành công.
 
-**Child → Parent (Callback Props):**
-```jsx
-// Parent
-<Child onUpdate={(data) => console.log(data)} />
+Chức năng chi tiết:
 
-// Child
-<button onClick={() => props.onUpdate('new data')}>
-```
+Icon thành công (checkmark animation)
+Mã đơn hàng
+Thời gian dự kiến giao hàng
+Nút "Xem đơn hàng"
+Nút "Về trang chủ"
+Xóa giỏ hàng sau khi đặt thành công
+11.3. Lưu địa chỉ giao hàng
+Mô tả: Người dùng lưu nhiều địa chỉ giao hàng.
 
-**Sibling Communication (Lift State Up):**
-```jsx
-function Parent() {
-  const [data, setData] = useState('');
-  return (
-    <>
-      <ChildA data={data} setData={setData} />
-      <ChildB data={data} />
-    </>
-  );
+Chức năng chi tiết:
+
+Thêm địa chỉ mới
+Đặt địa chỉ mặc định
+Sửa/Xóa địa chỉ
+Chọn địa chỉ khi đặt hàng
+API Endpoint:
+
+GET /api/user/addresses
+POST /api/user/addresses
+PUT /api/user/addresses/{addressId}
+DELETE /api/user/addresses/{addressId}
+NHÓM 12: LỊCH SỬ ĐƠN HÀNG (Order History) - USER
+12.1. Hiển thị danh sách lịch sử đơn hàng
+Mô tả: Người dùng xem tất cả đơn hàng đã đặt.
+
+Chức năng chi tiết:
+
+Hiển thị danh sách đơn hàng theo thời gian (mới nhất trước)
+Mỗi item hiển thị:
+Mã đơn hàng
+Ngày đặt
+Số lượng món
+Tổng tiền
+Trạng thái (màu sắc khác nhau):
+Màu xám: Đã hoàn thành
+Màu trắng: Chưa hoàn thành (Chờ xác nhận, Đang xử lý)
+Màu đỏ: Đã hủy
+Tab filter: Tất cả, Chờ xác nhận, Đang xử lý, Hoàn thành, Đã hủy
+API Endpoint:
+
+GET /api/user/orders?status={status}
+Headers: {
+    "Authorization": "Bearer {token}"
 }
-```
-
-### 3. **Controlled vs Uncontrolled Components**
-
-**Controlled (Recommended):**
-```jsx
-const [value, setValue] = useState('');
-<input 
-  value={value} 
-  onChange={(e) => setValue(e.target.value)} 
-/>
-```
-- React state là "single source of truth"
-- Value luôn sync với state
-
-**Uncontrolled:**
-```jsx
-const inputRef = useRef();
-<input ref={inputRef} />
-// Lấy value: inputRef.current.value
-```
-- DOM là source of truth
-- Dùng ref để access value
-
-### 4. **Array Methods**
-
-**map()** - Transform array:
-```jsx
-[1, 2, 3].map(x => x * 2)  // [2, 4, 6]
-```
-
-**filter()** - Filter array:
-```jsx
-[1, 2, 3, 4].filter(x => x > 2)  // [3, 4]
-```
-
-**find()** - Find first match:
-```jsx
-[1, 2, 3].find(x => x > 1)  // 2
-```
-
-### 5. **Async/Await vs Promises**
-
-**Promise chain:**
-```jsx
-fetch(url)
-  .then(response => response.json())
-  .then(data => console.log(data))
-  .catch(error => console.error(error));
-```
-
-**Async/await (cleaner):**
-```jsx
-try {
-  const response = await fetch(url);
-  const data = await response.json();
-  console.log(data);
-} catch (error) {
-  console.error(error);
+Response: {
+    "orders": [
+        {
+            "id": "string",
+            "orderCode": "string",
+            "totalItems": "number",
+            "totalPrice": "number",
+            "status": "PENDING|PROCESSING|COMPLETED|CANCELLED",
+            "createdAt": "timestamp"
+        }
+    ]
 }
-```
+UI Implementation:
 
-### 6. **Destructuring**
-
-**Object:**
-```jsx
-const user = { name: 'John', age: 25 };
-const { name, age } = user;
-// name = 'John', age = 25
-```
-
-**Array:**
-```jsx
-const [first, second] = [1, 2, 3];
-// first = 1, second = 2
-```
-
-**Props:**
-```jsx
-function Component({ name, age }) {
-  // Thay vì: props.name, props.age
+// Color coding for status
+switch (order.getStatus()) {
+    case "COMPLETED":
+        cardView.setCardBackgroundColor(Color.GRAY);
+        break;
+    case "PENDING":
+    case "PROCESSING":
+        cardView.setCardBackgroundColor(Color.WHITE);
+        break;
+    case "CANCELLED":
+        cardView.setCardBackgroundColor(Color.RED);
+        break;
 }
-```
+12.2. Xem chi tiết đơn hàng
+Mô tả: Người dùng xem chi tiết từng đơn hàng.
 
-### 7. **Spread Operator**
+Chức năng chi tiết:
 
-**Copy array:**
-```jsx
-const arr1 = [1, 2];
-const arr2 = [...arr1, 3];  // [1, 2, 3]
-```
+Mã đơn hàng
+Trạng thái hiện tại
+Timeline trạng thái (nếu có):
+Đã đặt hàng
+Đã xác nhận
+Đang xử lý
+Hoàn thành
+Danh sách món đã đặt
+Thông tin giao hàng
+Tổng tiền
+Ghi chú
+Nút "Đặt lại" (order again)
+Nút "Hủy đơn" (nếu status = Pending)
+API Endpoint:
 
-**Copy object:**
-```jsx
-const obj1 = { a: 1 };
-const obj2 = { ...obj1, b: 2 };  // { a: 1, b: 2 }
-```
+GET /api/user/orders/{orderId}
+12.3. Hủy đơn hàng
+Mô tả: Người dùng hủy đơn hàng (chỉ khi trạng thái = Pending).
 
-**Update object:**
-```jsx
-setUser({ ...user, name: 'Jane' });
-// Giữ nguyên other fields, chỉ update name
-```
+Chức năng chi tiết:
 
-### 8. **Conditional Rendering**
+Dialog chọn lý do hủy:
+Đổi ý
+Đặt nhầm
+Thay đổi địa chỉ
+Khác (nhập lý do)
+Nút "Xác nhận hủy"
+API Endpoint:
 
-**If/else:**
-```jsx
-{condition ? <ComponentA /> : <ComponentB />}
-```
+PUT /api/user/orders/{orderId}/cancel
+Request Body: {
+    "reason": "string"
+}
+12.4. Đặt lại đơn hàng
+Mô tả: Người dùng đặt lại đơn hàng đã từng đặt.
 
-**And operator:**
-```jsx
-{isLoggedIn && <WelcomeMessage />}
-```
+Chức năng chi tiết:
 
-**Nullish:**
-```jsx
-{data || <Loading />}
-```
+Copy danh sách món từ đơn cũ vào giỏ hàng
+Chuyển đến màn hình giỏ hàng
+Người dùng có thể chỉnh sửa trước khi đặt
+NHÓM 13: FEEDBACK & ĐÁNH GIÁ (Feedback & Review) - USER
+13.1. Gửi feedback cho quán
+Mô tả: Người dùng gửi phản hồi, đánh giá về dịch vụ.
 
-### 9. **Event Handlers**
+Chức năng chi tiết:
 
-**Inline:**
-```jsx
-<button onClick={() => console.log('clicked')}>
-```
+Rating sao (1-5 sao) - RatingBar
+Nhập nội dung feedback (EditText multiline)
+Upload hình ảnh (tùy chọn)
+Nút "Gửi feedback"
+Thông báo thành công
+API Endpoint:
 
-**Function reference:**
-```jsx
-<button onClick={handleClick}>
-```
+POST /api/feedbacks
+Headers: {
+    "Authorization": "Bearer {token}"
+}
+Request Body: {
+    "rating": "number",
+    "content": "string",
+    "images": ["base64_string"]
+}
+Layout:
 
-**With parameters:**
-```jsx
-<button onClick={() => handleClick(id)}>
-```
+<ScrollView>
+    <LinearLayout>
+        <TextView text="Đánh giá của bạn"/>
+        <RatingBar id="ratingBar" numStars="5"/>
+        
+        <TextView text="Nội dung phản hồi"/>
+        <EditText 
+            id="edtContent"
+            inputType="textMultiLine"
+            lines="5"
+            hint="Chia sẻ trải nghiệm của bạn..."/>
+        
+        <TextView text="Hình ảnh (tùy chọn)"/>
+        <RecyclerView id="rvImages"/> <!-- Selected images -->
+        <Button id="btnAddImage" text="Thêm ảnh"/>
+        
+        <Button id="btnSubmit" text="Gửi feedback"/>
+    </LinearLayout>
+</ScrollView>
+13.2. Xem feedback đã gửi
+Mô tả: Người dùng xem lại các feedback đã gửi.
 
-### 10. **CSS Classes với Tailwind**
+Chức năng chi tiết:
 
-**Static:**
-```jsx
-<div className="bg-blue-500 text-white">
-```
+Danh sách feedback của user
+Hiển thị: rating, nội dung, thời gian, trạng thái
+Có thể chỉnh sửa hoặc xóa feedback
+API Endpoint:
 
-**Conditional:**
-```jsx
-<div className={`base-class ${isActive ? 'active' : 'inactive'}`}>
-```
+GET /api/user/feedbacks
+NHÓM 14: THÔNG TIN LIÊN HỆ (Contact Information) - USER
+14.1. Hiển thị thông tin liên hệ quán
+Mô tả: Hiển thị các phương thức liên lạc với quán ăn.
 
-**Dark mode:**
-```jsx
-<div className="bg-white dark:bg-gray-900">
-```
+Chức năng chi tiết:
 
----
+Icon + Label cho từng phương thức:
+Facebook: Click → mở Facebook Page
+Skype: Click → mở Skype chat
+Call Phone: Click → mở dialer với số điện thoại
+YouTube: Click → mở YouTube Channel
+Zalo: Click → mở Zalo chat
+Gmail: Click → mở email client
+Layout:
 
-## Best Practices
+<LinearLayout orientation="vertical">
+    <TextView text="Liên hệ với chúng tôi" style="bold"/>
+    
+    <LinearLayout id="btnFacebook">
+        <ImageView src="@drawable/ic_facebook"/>
+        <TextView text="Facebook"/>
+    </LinearLayout>
+    
+    <LinearLayout id="btnSkype">
+        <ImageView src="@drawable/ic_skype"/>
+        <TextView text="Skype"/>
+    </LinearLayout>
+    
+    <LinearLayout id="btnPhone">
+        <ImageView src="@drawable/ic_phone"/>
+        <TextView text="Gọi điện: 0123456789"/>
+    </LinearLayout>
+    
+    <LinearLayout id="btnYoutube">
+        <ImageView src="@drawable/ic_youtube"/>
+        <TextView text="YouTube"/>
+    </LinearLayout>
+    
+    <LinearLayout id="btnZalo">
+        <ImageView src="@drawable/ic_zalo"/>
+        <TextView text="Zalo"/>
+    </LinearLayout>
+    
+    <LinearLayout id="btnGmail">
+        <ImageView src="@drawable/ic_gmail"/>
+        <TextView text="Email: restaurant@gmail.com"/>
+    </LinearLayout>
+</LinearLayout>
+Implementation:
 
-### ✅ DO:
+// Facebook
+btnFacebook.setOnClickListener(v -> {
+    String facebookUrl = "https://www.facebook.com/restaurantpage";
+    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(facebookUrl));
+    startActivity(intent);
+});
 
-1. **Use functional components và hooks**
-2. **Destructure props và state**
-3. **Keep components small và focused**
-4. **Use meaningful variable names**
-5. **Add comments cho logic phức tạp**
-6. **Validate user input**
-7. **Handle errors properly**
-8. **Use keys trong lists**
+// Phone
+btnPhone.setOnClickListener(v -> {
+    Intent intent = new Intent(Intent.ACTION_DIAL);
+    intent.setData(Uri.parse("tel:0123456789"));
+    startActivity(intent);
+});
 
-### ❌ DON'T:
+// Email
+btnGmail.setOnClickListener(v -> {
+    Intent intent = new Intent(Intent.ACTION_SENDTO);
+    intent.setData(Uri.parse("mailto:restaurant@gmail.com"));
+    intent.putExtra(Intent.EXTRA_SUBJECT, "Liên hệ từ ứng dụng");
+    startActivity(intent);
+});
 
-1. **Mutate state directly** (`state.push()` ❌ → `setState([...state, item])` ✅)
-2. **Forget dependency array** trong useEffect
-3. **Use index as key** trong dynamic lists
-4. **Put side effects** trực tiếp trong render
-5. **Ignore errors** (luôn có try-catch hoặc .catch())
+// Zalo
+btnZalo.setOnClickListener(v -> {
+    String zaloUrl = "https://zalo.me/zalo_phone_number";
+    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(zaloUrl));
+    startActivity(intent);
+});
+14.2. Xem bản đồ vị trí quán
+Mô tả: Hiển thị vị trí quán trên Google Maps.
 
----
+Chức năng chi tiết:
 
-## Debugging Tips
+Tích hợp Google Maps
+Hiển thị marker vị trí quán
+Nút "Chỉ đường" → mở Google Maps navigation
+Implementation:
 
-### Console Logging:
-```jsx
-console.log('State:', state);
-console.log('Props:', props);
-console.error('Error:', error);
-```
+// Google Maps Fragment
+SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+    .findFragmentById(R.id.map);
+mapFragment.getMapAsync(googleMap -> {
+    LatLng restaurantLocation = new LatLng(10.762622, 106.660172); // Example
+    googleMap.addMarker(new MarkerOptions()
+        .position(restaurantLocation)
+        .title("Tên quán ăn"));
+    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(restaurantLocation, 15));
+});
 
-### React DevTools:
-- Install extension
-- Inspect component tree
-- View props và state
-- Profile performance
+// Direction button
+btnDirection.setOnClickListener(v -> {
+    String uri = "google.navigation:q=10.762622,106.660172";
+    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+    intent.setPackage("com.google.android.apps.maps");
+    startActivity(intent);
+});
+NHÓM 15: TÍNH NĂNG AI - SMART UPSELL (AI-Powered Smart Upsell)
+15.1. Gợi ý món ăn kèm thông minh
+Mô tả: Khi khách chọn mua món, App sẽ gợi ý món kèm dựa trên phân tích dữ liệu hoặc rule-based.
 
-### Network Tab:
-- Check API requests
-- Verify request/response
-- Check headers và body
+Ví dụ:
 
-### Breakpoints:
-- Thêm `debugger;` trong code
-- Use browser DevTools
+Khách chọn "Gà rán" → Gợi ý "Khách mua gà thường uống kèm Pepsi"
+Đang giờ trưa → "Bạn có muốn thêm canh súp không?"
+Cách thực hiện:
 
----
+Phương án 1: Rule-Based (Đơn giản)
+Logic:
 
-**Chúc bạn code vui vẻ! 🚀**
+public class UpsellService {
+    
+    public List<Food> getUpsellSuggestions(Food selectedFood, String currentTime) {
+        List<Food> suggestions = new ArrayList<>();
+        
+        // Rule 1: Main Dish → Suggest Drink
+        if (selectedFood.getCategory().equals("MAIN_DISH")) {
+            suggestions.add(getFoodByName("Pepsi"));
+            suggestions.add(getFoodByName("Coca Cola"));
+        }
+        
+        // Rule 2: Lunch time → Suggest Soup
+        int hour = Integer.parseInt(currentTime.split(":")[0]);
+        if (hour >= 11 && hour <= 13) {
+            suggestions.add(getFoodByName("Canh súp"));
+        }
+        
+        // Rule 3: Fried food → Suggest Salad
+        if (selectedFood.getName().contains("rán")) {
+            suggestions.add(getFoodByName("Salad rau củ"));
+        }
+        
+        // Rule 4: Price-based upsell
+        if (selectedFood.getPrice() < 50000) {
+            suggestions.add(getFoodByName("Khoai tây chiên")); // Low price combo
+        }
+        
+        return suggestions;
+    }
+}
+Phương án 2: AI-Based (Association Rule Learning)
+PHƯƠNG ÁN 1: Logic trong App (Java) - ĐƠN GIẢN NHẤT
 
-*Tài liệu này giải thích chi tiết code cho người mới bắt đầu học React*
+public class UpsellService {
+    
+    public List<Food> getUpsellSuggestions(Food selectedFood, String currentTime) {
+        List<Food> suggestions = new ArrayList<>();
+        
+        // Rule 1: Main Dish → Suggest Drink
+        if (selectedFood.getCategory().equals("MAIN_DISH")) {
+            // Lấy món drink từ Firestore
+            FirebaseFirestore.getInstance()
+                .collection("foods")
+                .whereEqualTo("category", "DRINK")
+                .whereEqualTo("isSuggested", true)
+                .limit(2)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        suggestions.add(doc.toObject(Food.class));
+                    }
+                    showUpsellDialog(suggestions);
+                });
+        }
+        
+        // Rule 2: Lunch time → Suggest Soup
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        if (hour >= 11 && hour <= 13) {
+            FirebaseFirestore.getInstance()
+                .collection("foods")
+                .whereEqualTo("category", "APPETIZER")
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        suggestions.add(doc.toObject(Food.class));
+                    }
+                });
+        }
+        
+        return suggestions;
+    }
+}
+PHƯƠNG ÁN 2: Phân tích dữ liệu từ Firestore (Nâng cao)
+
+public class AiUpsellService {
+    
+    // Phân tích tất cả đơn hàng đã hoàn thành
+    public void analyzeOrdersAndGetSuggestions(String selectedFoodId, UpsellCallback callback) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        
+        // Lấy tất cả đơn hàng đã hoàn thành
+        db.collection("orders")
+            .whereEqualTo("status", "COMPLETED")
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                // Map để lưu số lần món A và món B xuất hiện cùng nhau
+                Map<String, Map<String, Integer>> associations = new HashMap<>();
+                
+                for (DocumentSnapshot orderDoc : querySnapshot.getDocuments()) {
+                    List<Map<String, Object>> items = (List<Map<String, Object>>) orderDoc.get("items");
+                    
+                    if (items != null) {
+                        // Duyệt qua từng món trong đơn hàng
+                        for (int i = 0; i < items.size(); i++) {
+                            String foodId1 = (String) items.get(i).get("foodId");
+                            
+                            if (!associations.containsKey(foodId1)) {
+                                associations.put(foodId1, new HashMap<>());
+                            }
+                            
+                            // Tìm món khác trong cùng đơn hàng
+                            for (int j = 0; j < items.size(); j++) {
+                                if (i != j) {
+                                    String foodId2 = (String) items.get(j).get("foodId");
+                                    Map<String, Integer> foodAssoc = associations.get(foodId1);
+                                    foodAssoc.put(foodId2, foodAssoc.getOrDefault(foodId2, 0) + 1);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Lấy top 3 món thường mua kèm với selectedFoodId
+                if (associations.containsKey(selectedFoodId)) {
+                    Map<String, Integer> relatedFoods = associations.get(selectedFoodId);
+                    
+                    // Sắp xếp theo số lần xuất hiện
+                    List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(relatedFoods.entrySet());
+                    sortedList.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+                    
+                    // Lấy top 3
+                    List<String> topFoodIds = new ArrayList<>();
+                    for (int i = 0; i < Math.min(3, sortedList.size()); i++) {
+                        topFoodIds.add(sortedList.get(i).getKey());
+                    }
+                    
+                    // Lấy thông tin món ăn từ Firestore
+                    List<Food> suggestions = new ArrayList<>();
+                    for (String foodId : topFoodIds) {
+                        db.collection("foods").document(foodId)
+                            .get()
+                            .addOnSuccessListener(doc -> {
+                                Food food = doc.toObject(Food.class);
+                                food.setId(doc.getId());
+                                suggestions.add(food);
+                                
+                                if (suggestions.size() == topFoodIds.size()) {
+                                    callback.onSuccess(suggestions);
+                                }
+                            });
+                    }
+                } else {
+                    // Nếu chưa có dữ liệu, dùng rule-based
+                    callback.onSuccess(new ArrayList<>());
+                }
+            });
+    }
+    
+    public interface UpsellCallback {
+        void onSuccess(List<Food> suggestions);
+    }
+}
+PHƯƠNG ÁN 3: Firebase Functions (JavaScript trên server Google)
+
+// Chạy trên server của Google (không phải trên điện thoại)
+// File: functions/index.js
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+exports.getUpsellSuggestions = functions.https.onCall(async (data, context) => {
+    const foodId = data.foodId;
+    
+    // Lấy tất cả đơn hàng
+    const ordersSnapshot = await admin.firestore()
+        .collection('orders')
+        .where('status', '==', 'COMPLETED')
+        .get();
+    
+    const associations = {};
+    
+    ordersSnapshot.forEach(doc => {
+        const items = doc.data().items;
+        items.forEach((item, index) => {
+            if (!associations[item.foodId]) {
+                associations[item.foodId] = {};
+            }
+            items.forEach((otherItem, otherIndex) => {
+                if (index !== otherIndex) {
+                    if (!associations[item.foodId][otherItem.foodId]) {
+                        associations[item.foodId][otherItem.foodId] = 0;
+                    }
+                    associations[item.foodId][otherItem.foodId]++;
+                }
+            });
+        });
+    });
+    
+    // Lấy top suggestions cho foodId
+    const suggestions = [];
+    if (associations[foodId]) {
+        const sorted = Object.entries(associations[foodId])
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+        
+        for (const [suggestedFoodId, count] of sorted) {
+            const foodDoc = await admin.firestore()
+                .collection('foods')
+                .doc(suggestedFoodId)
+                .get();
+            suggestions.push({ id: suggestedFoodId, ...foodDoc.data() });
+        }
+    }
+    
+    return { suggestions };
+});
+Gọi Firebase Functions từ Android:
+
+// Gọi Cloud Function
+FirebaseFunctions functions = FirebaseFunctions.getInstance();
+
+Map<String, Object> data = new HashMap<>();
+data.put("foodId", selectedFoodId);
+
+functions.getHttpsCallable("getUpsellSuggestions")
+    .call(data)
+    .addOnSuccessListener(result -> {
+        Map<String, Object> response = (Map<String, Object>) result.getData();
+        List<Map<String, Object>> suggestions = (List<Map<String, Object>>) response.get("suggestions");
+        
+        // Hiển thị dialog gợi ý
+        showUpsellDialog(suggestions);
+    });
+Client-side (Java Android) - Gọi API và hiển thị:
+
+public class SmartUpsellManager {
+    
+    public void showUpsellDialog(Activity activity, Food selectedFood, CartDao cartDao) {
+        // Call API to get AI recommendations
+        ApiService.getUpsellSuggestions(selectedFood.getId(), new Callback<UpsellResponse>() {
+            @Override
+            public void onSuccess(UpsellResponse response) {
+                if (response.getSuggestions().isEmpty()) {
+                    // Fallback to rule-based
+                    showRuleBasedUpsell(activity, selectedFood, cartDao);
+                } else {
+                    showAiUpsellDialog(activity, selectedFood, response.getSuggestions(), cartDao);
+                }
+            }
+            
+            @Override
+            public void onError(Throwable error) {
+                // Fallback to rule-based
+                showRuleBasedUpsell(activity, selectedFood, cartDao);
+            }
+        });
+    }
+    
+    private void showAiUpsellDialog(Activity activity, Food mainFood, 
+                                     List<Food> suggestions, CartDao cartDao) {
+        // Create BottomSheetDialog or DialogFragment
+        BottomSheetDialog dialog = new BottomSheetDialog(activity);
+        View view = LayoutInflater.from(activity).inflate(R.layout.dialog_upsell, null);
+        
+        TextView tvMessage = view.findViewById(R.id.tvMessage);
+        RecyclerView rvSuggestions = view.findViewById(R.id.rvSuggestions);
+        Button btnSkip = view.findViewById(R.id.btnSkip);
+        
+        // Set message
+        String message = "Khách mua " + mainFood.getName() + " thường kèm theo:";
+        tvMessage.setText(message);
+        
+        // Setup RecyclerView
+        UpsellAdapter adapter = new UpsellAdapter(suggestions, food -> {
+            // Add to cart
+            cartDao.addToCart(new CartItem(food.getId(), food.getName(), 
+                food.getImage(), food.getPrice(), 1, System.currentTimeMillis()));
+            Toast.makeText(activity, "Đã thêm " + food.getName(), Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+        rvSuggestions.setAdapter(adapter);
+        
+        btnSkip.setOnClickListener(v -> dialog.dismiss());
+        
+        dialog.setContentView(view);
+        dialog.show();
+    }
+}
+Firebase Implementation:
+
+// CÁCH 1: Dùng rule-based đơn giản (Khuyên dùng cho bắt đầu)
+UpsellService upsellService = new UpsellService();
+List<Food> suggestions = upsellService.getUpsellSuggestions(selectedFood, currentTime);
+
+// CÁCH 2: Dùng AI phân tích đơn hàng (Nâng cao)
+AiUpsellService aiService = new AiUpsellService();
+aiService.analyzeOrdersAndGetSuggestions(selectedFood.getId(), suggestions -> {
+    if (suggestions.isEmpty()) {
+        // Fallback về rule-based nếu chưa có dữ liệu
+        showRuleBasedUpsell();
+    } else {
+        showAiUpsellDialog(suggestions);
+    }
+});
+
+// CÁCH 3: Dùng Firebase Functions (Phức tạp nhất, cần deploy)
+// Xem code ở trên
+Lưu ý: Với Firebase, bạn có 3 lựa chọn:
+
+Rule-based: Code trong app, đơn giản nhất ✅
+AI local: Phân tích trong app, tốn tài nguyên điện thoại
+Firebase Functions: Phân tích trên server Google, cần setup thêm
+15.2. Hiển thị Upsell Popup
+Mô tả: Khi người dùng bấm "Thêm vào giỏ hàng", hiển thị popup gợi ý.
+
+Chức năng chi tiết:
+
+DialogFragment hoặc BottomSheetDialog
+Hiển thị 2-3 món gợi ý
+Mỗi món hiển thị: ảnh, tên, giá, nút "Thêm (+10k)"
+Nút "Bỏ qua"
+Animation smooth
+Layout:
+
+<!-- dialog_upsell.xml -->
+<LinearLayout>
+    <TextView 
+        id="tvTitle"
+        text="Thêm món kèm để được ưu đãi!"
+        style="bold"/>
+    
+    <TextView 
+        id="tvMessage"
+        text="Khách mua gà thường uống kèm:"/>
+    
+    <RecyclerView 
+        id="rvSuggestions"
+        orientation="horizontal"/>
+    
+    <!-- Each item in RecyclerView -->
+    <CardView>
+        <ImageView id="foodImage"/>
+        <TextView id="foodName"/>
+        <TextView id="foodPrice" text="+10.000đ"/>
+        <Button id="btnAdd" text="Thêm"/>
+    </CardView>
+    
+    <Button 
+        id="btnSkip"
+        text="Bỏ qua"
+        style="text"/>
+</LinearLayout>
+15.3. Theo dõi hiệu quả Upsell
+Mô tả: Admin xem thống kê hiệu quả của tính năng AI Upsell.
+
+Chức năng chi tiết:
+
+Số lần hiển thị gợi ý
+Số lần khách chấp nhận (conversion rate)
+Doanh thu tăng thêm từ upsell
+Top món được upsell thành công nhất
+API Endpoint:
+
+GET /api/admin/ai/upsell-stats?startDate={date}&endDate={date}
+Response: {
+    "totalShown": "number",
+    "totalAccepted": "number",
+    "conversionRate": "number",
+    "additionalRevenue": "number",
+    "topUpsellFoods": [
+        {
+            "foodName": "string",
+            "acceptCount": "number"
+        }
+    ]
+}
+NHÓM 16: THÔNG BÁO (Notifications)
+16.1. Thông báo đẩy (Push Notifications)
+Mô tả: Gửi thông báo cho người dùng về trạng thái đơn hàng, khuyến mãi.
+
+Chức năng chi tiết:
+
+Sử dụng Firebase Cloud Messaging (FCM)
+Thông báo khi:
+Đơn hàng được xác nhận
+Đơn hàng đang xử lý
+Đơn hàng hoàn thành
+Có khuyến mãi mới
+Món ăn yêu thích giảm giá
+Implementation:
+
+// FirebaseMessagingService
+public class MyFirebaseMessagingService extends FirebaseMessagingService {
+    @Override
+    public void onMessageReceived(RemoteMessage remoteMessage) {
+        String title = remoteMessage.getNotification().getTitle();
+        String body = remoteMessage.getNotification().getBody();
+        
+        showNotification(title, body);
+    }
+    
+    private void showNotification(String title, String message) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true);
+        
+        NotificationManager notificationManager = 
+            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(0, builder.build());
+    }
+}
+16.2. Thông báo trong app (In-app Notifications)
+Mô tả: Hiển thị danh sách thông báo trong ứng dụng.
+
+Chức năng chi tiết:
+
+Màn hình danh sách thông báo
+Badge hiển thị số thông báo chưa đọc
+Đánh dấu đã đọc/chưa đọc
+Xóa thông báo
+API Endpoint:
+
+GET /api/user/notifications
+PUT /api/user/notifications/{notificationId}/mark-read
+DELETE /api/user/notifications/{notificationId}
+NHÓM 17: YÊU THÍCH (Favorites)
+17.1. Thêm món vào danh sách yêu thích
+Mô tả: Người dùng lưu món ăn yêu thích.
+
+Chức năng chi tiết:
+
+Icon "trái tim" ở chi tiết món ăn
+Tap to toggle (thêm/bỏ yêu thích)
+Animation khi thêm
+Lưu local và sync với server
+API Endpoint:
+
+POST /api/user/favorites/{foodId}
+DELETE /api/user/favorites/{foodId}
+GET /api/user/favorites
+17.2. Xem danh sách món yêu thích
+Mô tả: Hiển thị tất cả món đã lưu.
+
+Chức năng chi tiết:
+
+Màn hình riêng hoặc tab trong Profile
+Grid/List hiển thị món yêu thích
+Nút "Thêm vào giỏ hàng" nhanh
+NHÓM 18: KHUYẾN MÃI & MÃ GIẢM GIÁ (Promotions & Coupons)
+18.1. Hiển thị danh sách khuyến mãi
+Mô tả: Người dùng xem các chương trình khuyến mãi.
+
+Chức năng chi tiết:
+
+Banner khuyến mãi ở Home
+Màn hình danh sách khuyến mãi
+Chi tiết: điều kiện, thời gian, giảm giá
+API Endpoint:
+
+GET /api/promotions
+Response: {
+    "promotions": [
+        {
+            "id": "string",
+            "title": "string",
+            "description": "string",
+            "image": "string",
+            "discountType": "PERCENTAGE|FIXED_AMOUNT",
+            "discountValue": "number",
+            "minOrderValue": "number",
+            "startDate": "timestamp",
+            "endDate": "timestamp",
+            "code": "string"
+        }
+    ]
+}
+18.2. Áp dụng mã giảm giá
+Mô tả: Người dùng nhập mã giảm giá khi đặt hàng.
+
+Chức năng chi tiết:
+
+Ô nhập mã giảm giá ở màn hình checkout
+Nút "Áp dụng"
+Kiểm tra mã hợp lệ
+Hiển thị số tiền được giảm
+API Endpoint:
+
+POST /api/coupons/validate
+Request Body: {
+    "code": "string",
+    "totalPrice": "number"
+}
+Response: {
+    "valid": "boolean",
+    "discountAmount": "number",
+    "message": "string"
+}
+18.3. Quản lý mã giảm giá (Admin)
+Mô tả: Admin tạo và quản lý mã giảm giá.
+
+Chức năng chi tiết:
+
+Thêm mã mới
+Thiết lập: % giảm hoặc số tiền, điều kiện, thời gian
+Xem số lượt sử dụng
+Xóa/Vô hiệu hóa mã
+NHÓM 19: BÁO CÁO & THỐNG KÊ (Reports & Analytics) - ADMIN
+19.1. Dashboard tổng quan
+Mô tả: Admin xem thống kê tổng quan.
+
+Chức năng chi tiết:
+
+Doanh thu hôm nay
+Số đơn hàng hôm nay
+Số khách hàng mới
+Biểu đồ doanh thu 7 ngày qua
+Top 5 món bán chạy
+API Endpoint:
+
+GET /api/admin/dashboard
+Response: {
+    "todayRevenue": "number",
+    "todayOrders": "number",
+    "newCustomers": "number",
+    "last7DaysRevenue": [
+        {
+            "date": "string",
+            "revenue": "number"
+        }
+    ],
+    "topSellingFoods": []
+}
+19.2. Báo cáo doanh thu chi tiết
+Mô tả: Admin xuất báo cáo doanh thu.
+
+Chức năng chi tiết:
+
+Chọn khoảng thời gian
+Xuất file PDF hoặc Excel
+Gửi email báo cáo
+19.3. Thống kê khách hàng
+Mô tả: Admin xem thống kê về khách hàng.
+
+Chức năng chi tiết:
+
+Tổng số khách hàng
+Khách hàng mới trong tháng
+Khách hàng mua nhiều nhất
+Tần suất đặt hàng
+NHÓM 20: CÀI ĐẶT ỨNG DỤNG (App Settings)
+20.1. Cài đặt tài khoản
+Mô tả: Người dùng tùy chỉnh cài đặt tài khoản.
+
+Chức năng chi tiết:
+
+Bật/tắt thông báo đẩy
+Bật/tắt thông báo email
+Ngôn ngữ (Tiếng Việt/English)
+Chế độ tối/sáng (Dark/Light mode)
+20.2. Điều khoản & Chính sách
+Mô tả: Hiển thị điều khoản sử dụng và chính sách bảo mật.
+
+Chức năng chi tiết:
+
+Điều khoản sử dụng
+Chính sách bảo mật
+Chính sách hoàn tiền
+20.3. Giới thiệu ứng dụng
+Mô tả: Thông tin về ứng dụng.
+
+Chức năng chi tiết:
+
+Phiên bản app
+Logo
+Thông tin developer
+Liên hệ hỗ trợ
+20.4. Đăng xuất
+Mô tả: Thoát khỏi tài khoản.
+
+NHÓM 21: BẢO MẬT & XÁC THỰC (Security & Authentication)
+21.1. Xác thực 2 yếu tố (2FA)
+Mô tả: Bảo mật tài khoản bằng OTP qua SMS/Email.
+
+Chức năng chi tiết:
+
+Bật/tắt 2FA trong cài đặt
+Gửi OTP khi đăng nhập
+Xác thực OTP
+21.2. Quản lý phiên đăng nhập
+Mô tả: Xem và quản lý các thiết bị đang đăng nhập.
+
+Chức năng chi tiết:
+
+Danh sách thiết bị
+Thời gian đăng nhập
+Đăng xuất từ xa
+NHÓM 22: THANH TOÁN (Payment Integration)
+22.1. Tích hợp thanh toán Momo
+Mô tả: Thanh toán qua ví Momo.
+
+Implementation:
+
+// Momo SDK Integration
+MoMoPayment.getInstance().requestPayment(
+    amount,
+    orderId,
+    orderInfo,
+    new MoMoCallback() {
+        @Override
+        public void onSuccess(MoMoResponse response) {
+            // Update order status
+        }
+        
+        @Override
+        public void onError(MoMoError error) {
+            // Show error
+        }
+    }
+);
+22.2. Tích hợp thanh toán ZaloPay
+Mô tả: Thanh toán qua ZaloPay.
+
+22.3. Thanh toán COD
+Mô tả: Thanh toán khi nhận hàng.
+
+NHÓM 23: CHAT HỖ TRỢ (Customer Support Chat)
+23.1. Chat với admin
+Mô tả: Người dùng chat trực tiếp với admin.
+
+Chức năng chi tiết:
+
+Realtime chat (Firebase Realtime Database)
+Gửi tin nhắn văn bản
+Gửi hình ảnh
+Hiển thị trạng thái đã xem
+Implementation:
+
+// Firebase Realtime Database
+DatabaseReference chatRef = FirebaseDatabase.getInstance()
+    .getReference("chats")
+    .child(userId);
+
+// Send message
+chatRef.push().setValue(new Message(
+    userId,
+    "admin",
+    messageText,
+    System.currentTimeMillis()
+));
+
+// Listen for messages
+chatRef.addChildEventListener(new ChildEventListener() {
+    @Override
+    public void onChildAdded(DataSnapshot snapshot, String previousChildName) {
+        Message message = snapshot.getValue(Message.class);
+        messageList.add(message);
+        adapter.notifyDataSetChanged();
+    }
+});
+23.2. Admin quản lý chat
+Mô tả: Admin xem và trả lời tất cả tin nhắn.
+
+Chức năng chi tiết:
+
+Danh sách cuộc hội thoại
+Badge tin nhắn chưa đọc
+Gửi tin nhắn nhanh
+NHÓM 24: TÍCH HỢP BÊN THỨ BA (Third-party Integrations)
+24.1. Google Maps
+Mô tả: Hiển thị vị trí quán, chỉ đường.
+
+24.2. Facebook Login
+Mô tả: Đăng nhập bằng tài khoản Facebook.
+
+Implementation:
+
+// Facebook SDK
+LoginButton loginButton = findViewById(R.id.login_button);
+loginButton.setReadPermissions("email", "public_profile");
+loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+    @Override
+    public void onSuccess(LoginResult loginResult) {
+        // Get user info and login
+    }
+});
+24.3. Google Login
+Mô tả: Đăng nhập bằng tài khoản Google.
+
+NHÓM 25: TÍNH NĂNG BỔ SUNG (Additional Features)
+25.1. Đánh giá món ăn sau khi hoàn thành đơn
+Mô tả: Sau khi đơn hàng hoàn thành, yêu cầu đánh giá.
+
+Chức năng chi tiết:
+
+Dialog đánh giá món ăn
+Rating sao cho từng món
+Nhập nhận xét
+25.2. Tìm kiếm bằng giọng nói
+Mô tả: Tìm kiếm món ăn bằng voice search.
+
+Implementation:
+
+// Speech Recognition
+Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, 
+    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN");
+startActivityForResult(intent, SPEECH_REQUEST_CODE);
+25.3. Chia sẻ món ăn lên mạng xã hội
+Mô tả: Chia sẻ món ăn yêu thích lên Facebook, Instagram.
+
+Implementation:
+
+Intent shareIntent = new Intent(Intent.ACTION_SEND);
+shareIntent.setType("text/plain");
+shareIntent.putExtra(Intent.EXTRA_TEXT, 
+    "Món " + foodName + " ngon quá! Tải app để đặt món: [link]");
+startActivity(Intent.createChooser(shareIntent, "Chia sẻ qua"));
+25.4. Tích điểm thưởng (Loyalty Points)
+Mô tả: Tích điểm khi mua hàng, đổi quà.
+
+Chức năng chi tiết:
+
+Mỗi đơn hàng nhận 1% giá trị đơn thành điểm
+Xem số điểm hiện tại
+Đổi điểm lấy voucher
+25.5. Chương trình giới thiệu bạn bè
+Mô tả: Nhận thưởng khi giới thiệu bạn bè.
+
+Chức năng chi tiết:
+
+Mã giới thiệu cá nhân
+Chia sẻ mã
+Nhận thưởng khi bạn bè đăng ký và đặt hàng
+� SETUP FIREBASE
+Bước 1: Tạo project Firebase
+Truy cập: https://console.firebase.google.com/
+Click "Add project" → Nhập tên project → Create
+Trong project, click icon Android để thêm app
+Nhập package name (vd: com.example.foodorder)
+Download file google-services.json
+Copy file vào thư mục app/ trong Android Studio
+Bước 2: Cài đặt Firebase SDK trong Android Studio
+File: build.gradle (Project level)
+
+buildscript {
+    dependencies {
+        classpath 'com.google.gms:google-services:4.4.0'
+    }
+}
+File: build.gradle (App level)
+
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+dependencies {
+    // Firebase BOM (Bill of Materials)
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    
+    // Firebase services
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-functions'
+    
+    // Other libraries
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+}
+Bước 3: Enable Firebase services
+Authentication: Console → Build → Authentication → Get Started → Enable Email/Password
+Firestore: Console → Build → Firestore Database → Create Database → Start in test mode
+Storage: Console → Build → Storage → Get Started → Start in test mode
+Cloud Messaging: Console → Build → Cloud Messaging (tự động enable)
+Bước 4: Tạo Admin user đầu tiên
+Vào Authentication → Users → Add user
+Tạo email: admin@foodorder.com + password
+Vào Firestore → users collection → Add document:
+Document ID: {uid của admin}
+Fields:
+role: "ADMIN"
+name: "Admin"
+email: "admin@foodorder.com"
+�🛠️ CÔNG NGHỆ SỬ DỤNG
+Frontend (Android)
+Ngôn ngữ: Java
+Architecture: MVVM (Model-View-ViewModel)
+Libraries:
+Retrofit 2: HTTP client
+Glide/Picasso: Load ảnh
+Room Database: Local database
+LiveData & ViewModel: Reactive UI
+RecyclerView: Danh sách
+ViewPager2: Slider
+Material Design Components
+Firebase Cloud Messaging: Push notifications
+Firebase Authentication: Xác thực
+Google Maps SDK
+Momo/ZaloPay SDK: Thanh toán
+Backend (Server)
+Platform: Firebase (Google)
+Database: Firebase Firestore (NoSQL realtime database)
+Authentication: Firebase Authentication (Email/Password, Google, Facebook)
+File Storage: Firebase Storage
+Push Notifications: Firebase Cloud Messaging (FCM)
+AI/ML: Logic trong app (Java) hoặc Firebase Functions (JavaScript) cho phân tích đơn hàng
+Tools & Services
+Version Control: Git + GitHub
+API Testing: Postman
+Design: Figma
+Analytics: Google Analytics
+Crash Reporting: Firebase Crashlytics
+📱 CẤU TRÚC ỨNG DỤNG ANDROID
+FoodOrderApp/
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/example/foodorder/
+│   │   │   │   ├── model/           # Data models
+│   │   │   │   │   ├── User.java
+│   │   │   │   │   ├── Food.java
+│   │   │   │   │   ├── Order.java
+│   │   │   │   │   ├── CartItem.java
+│   │   │   │   │   ├── Feedback.java
+│   │   │   │   ├── view/            # Activities & Fragments
+│   │   │   │   │   ├── auth/
+│   │   │   │   │   │   ├── LoginActivity.java
+│   │   │   │   │   │   ├── RegisterActivity.java
+│   │   │   │   │   ├── home/
+│   │   │   │   │   │   ├── HomeActivity.java
+│   │   │   │   │   │   ├── FoodDetailActivity.java
+│   │   │   │   │   ├── cart/
+│   │   │   │   │   │   ├── CartActivity.java
+│   │   │   │   │   │   ├── CheckoutActivity.java
+│   │   │   │   │   ├── order/
+│   │   │   │   │   │   ├── OrderHistoryActivity.java
+│   │   │   │   │   ├── admin/
+│   │   │   │   │   │   ├── AdminDashboardActivity.java
+│   │   │   │   │   │   ├── ManageFoodsActivity.java
+│   │   │   │   ├── viewmodel/       # ViewModels
+│   │   │   │   │   ├── AuthViewModel.java
+│   │   │   │   │   ├── FoodViewModel.java
+│   │   │   │   │   ├── CartViewModel.java
+│   │   │   │   │   ├── OrderViewModel.java
+│   │   │   │   ├── repository/      # Data repositories
+│   │   │   │   │   ├── UserRepository.java
+│   │   │   │   │   ├── FoodRepository.java
+│   │   │   │   ├── database/        # Room Database
+│   │   │   │   │   ├── AppDatabase.java
+│   │   │   │   │   ├── dao/
+│   │   │   │   │   │   ├── CartDao.java
+│   │   │   │   │   │   ├── FavoriteDao.java
+│   │   │   │   ├── network/         # API Service
+│   │   │   │   │   ├── ApiClient.java
+│   │   │   │   │   ├── ApiService.java
+│   │   │   │   ├── adapter/         # RecyclerView Adapters
+│   │   │   │   │   ├── FoodAdapter.java
+│   │   │   │   │   ├── CartAdapter.java
+│   │   │   │   │   ├── OrderAdapter.java
+│   │   │   │   ├── utils/           # Utilities
+│   │   │   │   │   ├── Constants.java
+│   │   │   │   │   ├── SharedPrefManager.java
+│   │   │   │   │   ├── ValidationUtils.java
+│   │   │   │   ├── ai/              # AI Smart Upsell
+│   │   │   │   │   ├── UpsellService.java
+│   │   │   │   │   ├── SmartUpsellManager.java
+│   │   │   ├── res/
+│   │   │   │   ├── layout/          # XML Layouts
+│   │   │   │   ├── drawable/        # Images & Icons
+│   │   │   │   ├── values/          # Strings, Colors, Styles
+│   │   │   ├── AndroidManifest.xml
+🔐 BẢO MẬT
+Mã hóa mật khẩu: BCrypt
+HTTPS cho tất cả API calls
+JWT token có thời gian hết hạn
+Validation đầu vào
+SQL Injection prevention
+XSS protection
+🚀 ROADMAP PHÁT TRIỂN
+Phase 1: MVP (Minimum Viable Product) - 2 tháng
+Authentication & Account Management
+Food Display & Search
+Shopping Cart
+Basic Order Placement
+Phase 2: Core Features - 1.5 tháng
+Admin Panel (Manage Foods, Orders)
+Order History
+Feedback System
+Payment Integration
+Phase 3: Advanced Features - 1.5 tháng
+AI Smart Upsell
+Push Notifications
+Revenue Tracking
+Reports & Analytics
+Phase 4: Enhancement - 1 tháng
+Chat Support
+Loyalty Points
+Referral Program
+Social Sharing
+📊 KPI & METRICS
+Conversion Rate: % người dùng hoàn thành đơn hàng
+Average Order Value (AOV): Giá trị đơn hàng trung bình
+Customer Retention Rate: % khách hàng quay lại
+AI Upsell Conversion: % chấp nhận gợi ý upsell
+App Rating: Đánh giá trên Google Play Store
+📝 GHI CHÚ
+File này có thể được cập nhật theo yêu cầu thực tế
+Mỗi tính năng cần có test case riêng
+UI/UX sẽ được thiết kế chi tiết trên Figma
+Cần tài liệu API riêng cho backend team
+Ngày cập nhật: 01/02/2026
+Người tạo: GitHub Copilot
+Trạng thái: Draft - Chờ duyệt
